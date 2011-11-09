@@ -1,34 +1,54 @@
-function RILParcel() {
-    // raw data
-    var _data = Array();
-    var response_type;
-    var type;
-    var length;
-    var serial;
-    var _parcel_unpack = function() {
-		//Can I do something like { type, length, ... } = Int32Array(...)?
-		var parse_array = new Int32Array(_data, 0, 3);
-		this.response_type = parse_array[0];
-		this.type = parse_array[1];
-		this.serial = parse_array[2];
-    };
+
+/**
+ * Base implementation.
+ */
+function RILParcel(buffer) {
+  this.buffer = buffer;
+};
+RILParcel.prototype = {
+
+  /**
+   * Int8Array representing the bytes for the parcel.
+   */
+  buffer: null,
+
+  /**
+   * Common parcel attributes.
+   */
+  response_type: null,
+  request_type: null,
+  length: null,
+  serial: null,
+
+  unpack: function unpack() {
+    // Solicited parcels look like [response_type = 0, serial]
+    // Unsolicited parcels look like [response_type != 0, request_type]
+    let arg;
+    [this.response_type, arg] = new Int32Array(this.buffer, 0, 2);
+    if (this.response_type == 0) {
+      this.serial = arg;
+    } else {
+      this.request_type = arg;
+    }
+  },
+
+  pack: function pack() {
+
+  },
 };
 
-function IntegerListParcel() {
-    var pack = function() {};
-    var unpack = function() {};
-};
+function IntegerListParcel(buffer) {
+  RILParcel.call(this, buffer);
+}
+IntegerListParcel.prototype = {
 
-function StringListParcel() {
-    var pack = function() {};
-    var unpack = function() {};
-};
+  unpack: function () {
+    RILParcel.prototype.unpack.call(this);
+    //TODO unpack further stuff
+  },
 
-function VoidParcel() {
-    var pack = function() {};
-    var unpack = function() {};
-};
+  pack: function () {
+    RILParcel.prototype.pack.call(this);
+  }
 
-IntegerListParcel.prototype = RILParcel.prototype;
-StringListParcel.prototype = RILParcel.prototype;
-VoidParcel.prototype = RILParcel.prototype;
+};
