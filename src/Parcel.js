@@ -42,6 +42,8 @@ function IntegerListParcel(buffer) {
 }
 IntegerListParcel.prototype = {
 
+  __proto__: RILParcel,
+
   unpack: function () {
     RILParcel.prototype.unpack.call(this);
     //TODO unpack further stuff
