@@ -17,9 +17,9 @@ SocketListener.prototype = {
   listen: function listen(host, port) {
     this.socket = gTransportService.createTransport(null, 0, host, port, null);
     this.inputStream = this.socket.openInputStream(0, 0, 0);
-    this.binaryInputStream = nsIBinaryInputStream(this.inputStream);
+    this.binaryInputStream = BinaryInputStream(this.inputStream);
     this.outputStream = this.socket.openOutputStream(0, 0, 0);
-    this.binaryOutputStream = nsIBinaryOutputStream(this.outputStream);
+    this.binaryOutputStream = BinaryOutputStream(this.outputStream);
     
     this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
   },
