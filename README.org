@@ -1,0 +1,5 @@
+* Notes
+
+- Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
+- Typed Arrays - https://developer.mozilla.org/en/JavaScript_typed_arrays
+- ArrayBufferViews - https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBufferView
