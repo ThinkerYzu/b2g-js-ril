@@ -3,3 +3,10 @@
 - Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
 - Typed Arrays - https://developer.mozilla.org/en/JavaScript_typed_arrays
 - ArrayBufferViews - https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBufferView
+
+* philikon's plugin tester 
+This makes this directory a Firefox add-on. Simply drop a proxy file
+(https://developer.mozilla.org/en/Setting_up_extension_development_environment#Firefox_extension_proxy_file)
+into your profile's 'extension' dir and the code will run when Firefox
+starts up. You can click the "Disable" button in about:addons to
+reload the code.
