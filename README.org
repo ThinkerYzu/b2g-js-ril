@@ -3,6 +3,8 @@
 - Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
 - Typed Arrays - https://developer.mozilla.org/en/JavaScript_typed_arrays
 - ArrayBufferViews - https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBufferView
+- Bottom Error Console Plugin - https://addons.mozilla.org/en-US/firefox/addon/bottom-error-console/
+- Printfing to error console - https://developer.mozilla.org/en/nsIConsoleService
 
 * philikon's plugin tester 
 This makes this directory a Firefox add-on. Simply drop a proxy file
