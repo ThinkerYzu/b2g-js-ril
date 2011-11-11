@@ -8,22 +8,31 @@ Cu.import("resource://gre/modules/AddonManager.jsm");
 const GLOBAL_SCOPE = this;
 
 let listener;
+let use_listener = true;
 
 function startup(data, reason) {
   function load(file) {
     Services.scriptloader.loadSubScript(data.resourceURI.spec + file,
                                         GLOBAL_SCOPE);
   }
+  load("utils.js");
   load("Parcel.js");
   load("socket.js");
-  listener = new SocketListener();
-  //listener.listen("host", "port");
+  if(use_listener) {
+    listener = new SocketListener();
+    listener.listen("localhost", "6200");
+  }
+  else {
+    load("test.js");
+    runTests();
+  }
 }
 
 
 function shutdown(data, reason) {
-  listener.stop();
-
+  if(use_listener) {
+    listener.stop();
+  }
   // Re-enable the ourselves when we get disabled. That way you can reload this
   // code by simply clicking the "Disable" button in about:addons.
   AddonManager.getAddonByID(data.id, function(addon) {
