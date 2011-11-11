@@ -12,7 +12,7 @@ function startup(data, reason) {
     Services.scriptloader.loadSubScript(data.resourceURI.spec + file,
                                         GLOBAL_SCOPE);
   }
-  load("src/Parcel.js");
+  load("Parcel.js");
   load("socket.js");
   listener = new SocketListener();
   //listener.listen("host", "port");
