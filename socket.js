@@ -28,7 +28,7 @@ SocketListener.prototype = {
   },
 
   stop: function stop() {
-    consoleMsg("Stopping socket");
+    console.print("Stopping socket");
     this.stopped = true;
     this.socket.close(0);
   },
@@ -49,7 +49,7 @@ SocketListener.prototype = {
   },
 
   processData: function processData(array_buffer) {
-    consoleMsg("We got some data!");
+    console.print("We got some data!");
   },
 
   sendData: function sendData(array_buffer) {

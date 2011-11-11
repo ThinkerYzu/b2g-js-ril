@@ -16,21 +16,25 @@ function startup(data, reason) {
                                         GLOBAL_SCOPE);
   }
   load("utils.js");
+  console.reset();
   load("Parcel.js");
   load("socket.js");
   if(use_listener) {
+    console.print("-------- Bringing up socket connection --------");
     listener = new SocketListener();
     listener.listen("localhost", "6200");
   }
   else {
+    console.print("-------- Running Test File --------");
     load("test.js");
     runTests();
   }
+  
 }
 
 
 function shutdown(data, reason) {
-  if(use_listener) {
+  if(typeof(listener) !== "undefined") {
     listener.stop();
   }
   // Re-enable the ourselves when we get disabled. That way you can reload this
