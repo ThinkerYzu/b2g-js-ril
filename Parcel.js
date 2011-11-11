@@ -28,7 +28,7 @@ RILParcel.prototype = {
      * Array of some type that will be filled either during unpack (for
      * incoming messages), or before packing (for outgoing messages).
      */   
-    data: Array(),
+    data: [],
     
     /**
      * Common parcel attributes.
@@ -93,7 +93,7 @@ RILParcel.prototype = {
     },
     intListPack:function() {
     },
-    parcel_types : new Array()
+    parcel_types : {}
 };
 
 RILParcel.prototype.parcel_types[RIL_REQUEST_GET_SIM_STATUS] = {
