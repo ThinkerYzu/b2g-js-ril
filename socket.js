@@ -27,6 +27,8 @@ SocketListener.prototype = {
     this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
   },
 
+  m: new RILManager(),
+  
   stop: function stop() {
     console.print("Stopping socket");
     this.stopped = true;
@@ -39,9 +41,7 @@ SocketListener.prototype = {
   onInputStreamReady: function onInputStreamReady() {
     let length;
     while (!this.stopped && (length = this.inputStream.available())) {
-      let byte_array = this.binaryInputStream.readByteArray(length);
-      let array_buffer = Uint8Array(byte_array);
-      this.processData(array_buffer);
+      this.processData(this.binaryInputStream.readByteArray(length));
     }
     if(!this.stopped) {
       this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
@@ -50,6 +50,7 @@ SocketListener.prototype = {
 
   processData: function processData(array_buffer) {
     console.print("We got some data!");
+    this.m.receiveData(array_buffer);
   },
 
   sendData: function sendData(array_buffer) {
