@@ -96,157 +96,163 @@ RILParcel.prototype = {
     parcel_types : {}
 };
 
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_SIM_STATUS] = {
-    packType : RILParcel.prototype.voidUnpack,
-    unpackType : RILParcel.prototype.voidPack
-};
-RILParcel.prototype.parcel_types[RIL_REQUEST_ENTER_SIM_PIN] = 2;
-RILParcel.prototype.parcel_types[RIL_REQUEST_ENTER_SIM_PUK] = 3;
-RILParcel.prototype.parcel_types[RIL_REQUEST_ENTER_SIM_PIN2] = 4;
-RILParcel.prototype.parcel_types[RIL_REQUEST_ENTER_SIM_PUK2] = 5;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CHANGE_SIM_PIN] = 6;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CHANGE_SIM_PIN2] = 7;
-RILParcel.prototype.parcel_types[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = 8;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_CURRENT_CALLS] = 9;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DIAL] = 10;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_IMSI] = {
-    packType: RILParcel.prototype.voidPack,
-    unpackType: RILParcel.prototype.stringUnpack
-};
-RILParcel.prototype.parcel_types[RIL_REQUEST_HANGUP] = 12;
-RILParcel.prototype.parcel_types[RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND] = 13;
-RILParcel.prototype.parcel_types[RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = 14;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = 15;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE] = 15;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CONFERENCE] = 16;
-RILParcel.prototype.parcel_types[RIL_REQUEST_UDUB] = 17;
-RILParcel.prototype.parcel_types[RIL_REQUEST_LAST_CALL_FAIL_CAUSE] = 18;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SIGNAL_STRENGTH] = 19;
-RILParcel.prototype.parcel_types[RIL_REQUEST_REGISTRATION_STATE] = 20;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GPRS_REGISTRATION_STATE] = 21;
-RILParcel.prototype.parcel_types[RIL_REQUEST_OPERATOR] = 22;
-RILParcel.prototype.parcel_types[RIL_REQUEST_RADIO_POWER] = 23;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DTMF] = 24;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SEND_SMS] = 25;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = 26;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SETUP_DATA_CALL] = 27;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SIM_IO] = 28;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SEND_USSD] = 29;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CANCEL_USSD] = 30;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_CLIR] = 31;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_CLIR] = 32;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_CALL_FORWARD_STATUS] = 33;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_CALL_FORWARD] = 34;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_CALL_WAITING] = 35;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_CALL_WAITING] = 36;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SMS_ACKNOWLEDGE] = 37;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_IMEI] = {
-    packType: RILParcel.prototype.voidPack,
-    unpackType: RILParcel.prototype.stringUnpack
-};
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_IMEISV] = {
-    packType: RILParcel.prototype.voidPack,
-    unpackType: RILParcel.prototype.stringUnpack
-};
-RILParcel.prototype.parcel_types[RIL_REQUEST_ANSWER] = 40;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DEACTIVATE_DATA_CALL] = 41;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_FACILITY_LOCK] = 42;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_FACILITY_LOCK] = 43;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CHANGE_BARRING_PASSWORD] = 44;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE] = 45;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = 46;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL] = 47;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS] = 48;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DTMF_START] = 49;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DTMF_STOP] = 50;
-RILParcel.prototype.parcel_types[RIL_REQUEST_BASEBAND_VERSION] = {
-    packType: RILParcel.prototype.voidPack,
-    unpackType: RILParcel.prototype.stringUnpack
-};
-RILParcel.prototype.parcel_types[RIL_REQUEST_SEPARATE_CONNECTION] = 52;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_MUTE] = 53;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_MUTE] = 54;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_CLIP] = 55;
-RILParcel.prototype.parcel_types[RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = 56;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DATA_CALL_LIST] = 57;
-RILParcel.prototype.parcel_types[RIL_REQUEST_RESET_RADIO] = 58;
-RILParcel.prototype.parcel_types[RIL_REQUEST_OEM_HOOK_RAW] = 59;
-RILParcel.prototype.parcel_types[RIL_REQUEST_OEM_HOOK_STRINGS] = 60;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SCREEN_STATE] = 61;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION] = 62;
-RILParcel.prototype.parcel_types[RIL_REQUEST_WRITE_SMS_TO_SIM] = 63;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DELETE_SMS_ON_SIM] = 64;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_BAND_MODE] = 65;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE] = 66;
-RILParcel.prototype.parcel_types[RIL_REQUEST_STK_GET_PROFILE] = 67;
-RILParcel.prototype.parcel_types[RIL_REQUEST_STK_SET_PROFILE] = 68;
-RILParcel.prototype.parcel_types[RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND] = 69;
-RILParcel.prototype.parcel_types[RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE] = 70;
-RILParcel.prototype.parcel_types[RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = 71;
-RILParcel.prototype.parcel_types[RIL_REQUEST_EXPLICIT_CALL_TRANSFER] = 72;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE] = 73;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE] = 74;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_NEIGHBORING_CELL_IDS] = 75;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_LOCATION_UPDATES] = 76;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SET_SUBSCRIPTION] = 77;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE] = 78;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = 79;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_TTY_MODE] = 80;
-RILParcel.prototype.parcel_types[RIL_REQUEST_QUERY_TTY_MODE] = 81;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = 82;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = 83;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_FLASH] = 84;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_BURST_DTMF] = 85;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = 86;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SEND_SMS] = 87;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE] = 88;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG] = 89;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG] = 90;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION] = 91;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG] = 92;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG] = 93;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = 94;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_SUBSCRIPTION] = 95;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM] = 96;
-RILParcel.prototype.parcel_types[RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM] = 97;
-RILParcel.prototype.parcel_types[RIL_REQUEST_DEVICE_IDENTITY] = 98;
-RILParcel.prototype.parcel_types[RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = 99;
-RILParcel.prototype.parcel_types[RIL_REQUEST_GET_SMSC_ADDRESS] = 100;
-RILParcel.prototype.parcel_types[RIL_REQUEST_SET_SMSC_ADDRESS] = 101;
-RILParcel.prototype.parcel_types[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS] = 102;
-RILParcel.prototype.parcel_types[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = 103;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_BASE] = 1000;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = {
-    packType: RILParcel.prototype.noPack,
-    unpackType: RILParcel.prototype.intUnpack
-};
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = 1001;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = 1002;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_NEW_SMS] = 1003;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT] = 1004;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM] = 1005;
-RILParcel.prototype.parcel_types[RIL_UNSOL_ON_USSD] = 1006;
-RILParcel.prototype.parcel_types[RIL_UNSOL_ON_USSD_REQUEST] = 1007;
-RILParcel.prototype.parcel_types[RIL_UNSOL_NITZ_TIME_RECEIVED] = 1008;
-RILParcel.prototype.parcel_types[RIL_UNSOL_SIGNAL_STRENGTH] = 1009;
-RILParcel.prototype.parcel_types[RIL_UNSOL_DATA_CALL_LIST_CHANGED] = 1010;
-RILParcel.prototype.parcel_types[RIL_UNSOL_SUPP_SVC_NOTIFICATION] = 1011;
-RILParcel.prototype.parcel_types[RIL_UNSOL_STK_SESSION_END] = 1012;
-RILParcel.prototype.parcel_types[RIL_UNSOL_STK_PROACTIVE_COMMAND] = 1013;
-RILParcel.prototype.parcel_types[RIL_UNSOL_STK_EVENT_NOTIFY] = 1014;
-RILParcel.prototype.parcel_types[RIL_UNSOL_STK_CALL_SETUP] = 1015;
-RILParcel.prototype.parcel_types[RIL_UNSOL_SIM_SMS_STORAGE_FULL] = 1016;
-RILParcel.prototype.parcel_types[RIL_UNSOL_SIM_REFRESH] = 1017;
-RILParcel.prototype.parcel_types[RIL_UNSOL_CALL_RING] = 1018;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED] = 1019;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_CDMA_NEW_SMS] = 1020;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS] = 1021;
-RILParcel.prototype.parcel_types[RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL] = 1022;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESTRICTED_STATE_CHANGED] = 1023;
-RILParcel.prototype.parcel_types[RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE] = 1024;
-RILParcel.prototype.parcel_types[RIL_UNSOL_CDMA_CALL_WAITING] = 1025;
-RILParcel.prototype.parcel_types[RIL_UNSOL_CDMA_OTA_PROVISION_STATUS] = 1026;
-RILParcel.prototype.parcel_types[RIL_UNSOL_CDMA_INFO_REC] = 1027;
-RILParcel.prototype.parcel_types[RIL_UNSOL_OEM_HOOK_RAW] = 1028;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RINGBACK_TONE] = 1029;
-RILParcel.prototype.parcel_types[RIL_UNSOL_RESEND_INCALL_MUTE] = 1030;
+(function () {
+   let p = RILParcel.prototype;
+   let t = p.parcel_types;
+
+  t[RIL_REQUEST_GET_SIM_STATUS] = {
+    packType: p.voidUnpack,
+    unpackType: p.voidPack
+  };
+  t[RIL_REQUEST_ENTER_SIM_PIN] = 2;
+  t[RIL_REQUEST_ENTER_SIM_PUK] = 3;
+  t[RIL_REQUEST_ENTER_SIM_PIN2] = 4;
+  t[RIL_REQUEST_ENTER_SIM_PUK2] = 5;
+  t[RIL_REQUEST_CHANGE_SIM_PIN] = 6;
+  t[RIL_REQUEST_CHANGE_SIM_PIN2] = 7;
+  t[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = 8;
+  t[RIL_REQUEST_GET_CURRENT_CALLS] = 9;
+  t[RIL_REQUEST_DIAL] = 10;
+  t[RIL_REQUEST_GET_IMSI] = {
+    packType: p.voidPack,
+    unpackType: p.stringUnpack
+  };
+  t[RIL_REQUEST_HANGUP] = 12;
+  t[RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND] = 13;
+  t[RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = 14;
+  t[RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = 15;
+  t[RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE] = 15;
+  t[RIL_REQUEST_CONFERENCE] = 16;
+  t[RIL_REQUEST_UDUB] = 17;
+  t[RIL_REQUEST_LAST_CALL_FAIL_CAUSE] = 18;
+  t[RIL_REQUEST_SIGNAL_STRENGTH] = 19;
+  t[RIL_REQUEST_REGISTRATION_STATE] = 20;
+  t[RIL_REQUEST_GPRS_REGISTRATION_STATE] = 21;
+  t[RIL_REQUEST_OPERATOR] = 22;
+  t[RIL_REQUEST_RADIO_POWER] = 23;
+  t[RIL_REQUEST_DTMF] = 24;
+  t[RIL_REQUEST_SEND_SMS] = 25;
+  t[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = 26;
+  t[RIL_REQUEST_SETUP_DATA_CALL] = 27;
+  t[RIL_REQUEST_SIM_IO] = 28;
+  t[RIL_REQUEST_SEND_USSD] = 29;
+  t[RIL_REQUEST_CANCEL_USSD] = 30;
+  t[RIL_REQUEST_GET_CLIR] = 31;
+  t[RIL_REQUEST_SET_CLIR] = 32;
+  t[RIL_REQUEST_QUERY_CALL_FORWARD_STATUS] = 33;
+  t[RIL_REQUEST_SET_CALL_FORWARD] = 34;
+  t[RIL_REQUEST_QUERY_CALL_WAITING] = 35;
+  t[RIL_REQUEST_SET_CALL_WAITING] = 36;
+  t[RIL_REQUEST_SMS_ACKNOWLEDGE] = 37;
+  t[RIL_REQUEST_GET_IMEI] = {
+    packType: p.voidPack,
+    unpackType: p.stringUnpack
+  };
+  t[RIL_REQUEST_GET_IMEISV] = {
+    packType: p.voidPack,
+    unpackType: p.stringUnpack
+  };
+  t[RIL_REQUEST_ANSWER] = 40;
+  t[RIL_REQUEST_DEACTIVATE_DATA_CALL] = 41;
+  t[RIL_REQUEST_QUERY_FACILITY_LOCK] = 42;
+  t[RIL_REQUEST_SET_FACILITY_LOCK] = 43;
+  t[RIL_REQUEST_CHANGE_BARRING_PASSWORD] = 44;
+  t[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE] = 45;
+  t[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = 46;
+  t[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL] = 47;
+  t[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS] = 48;
+  t[RIL_REQUEST_DTMF_START] = 49;
+  t[RIL_REQUEST_DTMF_STOP] = 50;
+  t[RIL_REQUEST_BASEBAND_VERSION] = {
+    packType: p.voidPack,
+    unpackType: p.stringUnpack
+  };
+  t[RIL_REQUEST_SEPARATE_CONNECTION] = 52;
+  t[RIL_REQUEST_SET_MUTE] = 53;
+  t[RIL_REQUEST_GET_MUTE] = 54;
+  t[RIL_REQUEST_QUERY_CLIP] = 55;
+  t[RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = 56;
+  t[RIL_REQUEST_DATA_CALL_LIST] = 57;
+  t[RIL_REQUEST_RESET_RADIO] = 58;
+  t[RIL_REQUEST_OEM_HOOK_RAW] = 59;
+  t[RIL_REQUEST_OEM_HOOK_STRINGS] = 60;
+  t[RIL_REQUEST_SCREEN_STATE] = 61;
+  t[RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION] = 62;
+  t[RIL_REQUEST_WRITE_SMS_TO_SIM] = 63;
+  t[RIL_REQUEST_DELETE_SMS_ON_SIM] = 64;
+  t[RIL_REQUEST_SET_BAND_MODE] = 65;
+  t[RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE] = 66;
+  t[RIL_REQUEST_STK_GET_PROFILE] = 67;
+  t[RIL_REQUEST_STK_SET_PROFILE] = 68;
+  t[RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND] = 69;
+  t[RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE] = 70;
+  t[RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = 71;
+  t[RIL_REQUEST_EXPLICIT_CALL_TRANSFER] = 72;
+  t[RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE] = 73;
+  t[RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE] = 74;
+  t[RIL_REQUEST_GET_NEIGHBORING_CELL_IDS] = 75;
+  t[RIL_REQUEST_SET_LOCATION_UPDATES] = 76;
+  t[RIL_REQUEST_CDMA_SET_SUBSCRIPTION] = 77;
+  t[RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE] = 78;
+  t[RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = 79;
+  t[RIL_REQUEST_SET_TTY_MODE] = 80;
+  t[RIL_REQUEST_QUERY_TTY_MODE] = 81;
+  t[RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = 82;
+  t[RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = 83;
+  t[RIL_REQUEST_CDMA_FLASH] = 84;
+  t[RIL_REQUEST_CDMA_BURST_DTMF] = 85;
+  t[RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = 86;
+  t[RIL_REQUEST_CDMA_SEND_SMS] = 87;
+  t[RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE] = 88;
+  t[RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG] = 89;
+  t[RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG] = 90;
+  t[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION] = 91;
+  t[RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG] = 92;
+  t[RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG] = 93;
+  t[RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = 94;
+  t[RIL_REQUEST_CDMA_SUBSCRIPTION] = 95;
+  t[RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM] = 96;
+  t[RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM] = 97;
+  t[RIL_REQUEST_DEVICE_IDENTITY] = 98;
+  t[RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = 99;
+  t[RIL_REQUEST_GET_SMSC_ADDRESS] = 100;
+  t[RIL_REQUEST_SET_SMSC_ADDRESS] = 101;
+  t[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS] = 102;
+  t[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = 103;
+  t[RIL_UNSOL_RESPONSE_BASE] = 1000;
+  t[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = {
+    packType: p.noPack,
+    unpackType: p.intUnpack
+  };
+  t[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = 1001;
+  t[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = 1002;
+  t[RIL_UNSOL_RESPONSE_NEW_SMS] = 1003;
+  t[RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT] = 1004;
+  t[RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM] = 1005;
+  t[RIL_UNSOL_ON_USSD] = 1006;
+  t[RIL_UNSOL_ON_USSD_REQUEST] = 1007;
+  t[RIL_UNSOL_NITZ_TIME_RECEIVED] = 1008;
+  t[RIL_UNSOL_SIGNAL_STRENGTH] = 1009;
+  t[RIL_UNSOL_DATA_CALL_LIST_CHANGED] = 1010;
+  t[RIL_UNSOL_SUPP_SVC_NOTIFICATION] = 1011;
+  t[RIL_UNSOL_STK_SESSION_END] = 1012;
+  t[RIL_UNSOL_STK_PROACTIVE_COMMAND] = 1013;
+  t[RIL_UNSOL_STK_EVENT_NOTIFY] = 1014;
+  t[RIL_UNSOL_STK_CALL_SETUP] = 1015;
+  t[RIL_UNSOL_SIM_SMS_STORAGE_FULL] = 1016;
+  t[RIL_UNSOL_SIM_REFRESH] = 1017;
+  t[RIL_UNSOL_CALL_RING] = 1018;
+  t[RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED] = 1019;
+  t[RIL_UNSOL_RESPONSE_CDMA_NEW_SMS] = 1020;
+  t[RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS] = 1021;
+  t[RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL] = 1022;
+  t[RIL_UNSOL_RESTRICTED_STATE_CHANGED] = 1023;
+  t[RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE] = 1024;
+  t[RIL_UNSOL_CDMA_CALL_WAITING] = 1025;
+  t[RIL_UNSOL_CDMA_OTA_PROVISION_STATUS] = 1026;
+  t[RIL_UNSOL_CDMA_INFO_REC] = 1027;
+  t[RIL_UNSOL_OEM_HOOK_RAW] = 1028;
+  t[RIL_UNSOL_RINGBACK_TONE] = 1029;
+  t[RIL_UNSOL_RESEND_INCALL_MUTE] = 1030;
+
+})();
