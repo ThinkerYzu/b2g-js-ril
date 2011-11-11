@@ -16,8 +16,8 @@ function startup(data, reason) {
                                         GLOBAL_SCOPE);
   }
   load("utils.js");
-  console.reset();
   load("Parcel.js");
+  load("RILManager.js");
   load("socket.js");
   if(use_listener) {
     console.print("-------- Bringing up socket connection --------");
