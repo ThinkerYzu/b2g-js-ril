@@ -10,9 +10,6 @@ ffConsole.prototype = {
     this.consoleService.logStringMessage("My component: " + aMessage);
   },
 
-  reset: function reset() {
-    this.consoleService.reset();
-  },
 }
 
 var console = new ffConsole();
