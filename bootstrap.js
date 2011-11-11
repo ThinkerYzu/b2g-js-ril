@@ -15,6 +15,7 @@ function startup(data, reason) {
     Services.scriptloader.loadSubScript(data.resourceURI.spec + file,
                                         GLOBAL_SCOPE);
   }
+  load("ril_vars.js"); 
   load("utils.js");
   load("Parcel.js");
   load("RILManager.js");
