@@ -64,7 +64,7 @@ RILParcel.prototype = {
          * 8 bytes (Request Type + Token)
          * + Data (defined by Parcel return type)
          */
-        buffer = new ArrayBuffer(8);
+        let buffer = new ArrayBuffer(8);
     },
 
     voidUnpack: function () {
@@ -80,7 +80,7 @@ RILParcel.prototype = {
     stringPack: function () {
     },   
     intUnpack: function() {
-        data = Int32Array(this.buffer, 8, 1)[0];
+        let data = Int32Array(this.buffer, 8, 1)[0];
         console.print("Data: " + data);
     },
     intPack: function() {
