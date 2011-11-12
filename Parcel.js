@@ -118,7 +118,7 @@ RILParcel.prototype = {
     this.buffer = ArrayBuffer(8);
     let pack_array = Int32Array(this.buffer, 0, 2);
     pack_array[0] = 1;
-    pack_array[1] = data;
+    pack_array[1] = this.data;
     return 8;
   },
   stringListUnpack: function () {
@@ -171,7 +171,11 @@ RILParcel.prototype = {
      pack: p.voidPack,
      unpack: p.stringListUnpack
    };
-   t[RIL_REQUEST_RADIO_POWER] = null;
+   t[RIL_REQUEST_RADIO_POWER] =  {
+     request_name: "RIL_REQUEST_RADIO_POWER",
+     pack: p.intPack,
+     unpack: p.voidUnpack
+   };
    t[RIL_REQUEST_DTMF] = null;
    t[RIL_REQUEST_SEND_SMS] = null;
    t[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = null;
@@ -277,7 +281,15 @@ RILParcel.prototype = {
    t[RIL_UNSOL_ON_USSD] = null;
    t[RIL_UNSOL_ON_USSD_REQUEST] = null;
    t[RIL_UNSOL_NITZ_TIME_RECEIVED] = null;
-   t[RIL_UNSOL_SIGNAL_STRENGTH] = null;
+   t[RIL_UNSOL_SIGNAL_STRENGTH] = {
+     request_name: "RIL_UNSOL_SIGNAL_STRENGTH",
+     pack: p.noPack,
+     // Returns 7 ints. But not in list format. Just 7 of them.
+     // Because it thinks they're array packs on the C side.
+     unpack: function () {
+       this.data = Uint32Array(this.buffer, 0, 7);
+     }
+   };
    t[RIL_UNSOL_DATA_CALL_LIST_CHANGED] = null;
    t[RIL_UNSOL_SUPP_SVC_NOTIFICATION] = null;
    t[RIL_UNSOL_STK_SESSION_END] = null;

@@ -30,21 +30,26 @@ Phone.prototype = {
 		console.print("Setting baseband to " + s);
 		this.baseband_version = s;
 	},
+  signalStrengthReceived : function(i) {
+    console.print("Strength: " + [x for each (x in i)]);
+  },
 	radioStateChangedRequest : function(d) {
 		console.print("Radio state changed. Requesting status update");
 		this.ril.send(RIL_REQUEST_GET_IMEI);
 		this.ril.send(RIL_REQUEST_GET_IMEISV);
+    if(d == RADIOSTATE_OFF) {
+      this.ril.send(RIL_REQUEST_RADIO_POWER, 1);
+    }
 		//this.ril.send(RIL_REQUEST_GET_IMSI);
 		// this.ril.send(RIL_REQUEST_BASEBAND_VERSION);
 	},
-  radioStateReceived : function(s) {
-  },
 	registerCallbacks: function() {
 		this.ril.addCallback(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, this.radioStateChangedRequest.bind(this) );
 		this.ril.addCallback(RIL_REQUEST_GET_IMSI, this.setIMSI.bind(this));
 		this.ril.addCallback(RIL_REQUEST_GET_IMEI, this.setIMEI.bind(this));
 		this.ril.addCallback(RIL_REQUEST_GET_IMEISV, this.setIMEISV.bind(this));
 		this.ril.addCallback(RIL_REQUEST_BASEBAND_VERSION, this.setBasebandVersion.bind(this));
+    this.ril.addCallback(RIL_UNSOL_SIGNAL_STRENGTH, this.signalStrengthReceived.bind(this));
 	}
 };
 
