@@ -32,10 +32,10 @@ Phone.prototype = {
 	},
 	radioStateChangedRequest : function(d) {
 		console.print("Radio state changed. Requesting status update");
-		this.ril.sendCommand(RIL_REQUEST_GET_IMEI);
-		this.ril.sendCommand(RIL_REQUEST_GET_IMEISV);
-		// this.ril.sendCommand(RIL_REQUEST_GET_IMSI);
-		// this.ril.sendCommand(RIL_REQUEST_BASEBAND_VERSION);
+		this.ril.send(RIL_REQUEST_GET_IMEI);
+		this.ril.send(RIL_REQUEST_GET_IMEISV);
+		//this.ril.send(RIL_REQUEST_GET_IMSI);
+		// this.ril.send(RIL_REQUEST_BASEBAND_VERSION);
 	},
 	registerCallbacks: function() {
 		this.ril.addCallback(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, this.radioStateChangedRequest.bind(this) );

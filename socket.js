@@ -52,7 +52,6 @@ SocketListener.prototype = {
     },
 
     processData: function processData(array_buffer) {
-        console.print("We got some data!");
         this.ril.receive(array_buffer);
     },
 
