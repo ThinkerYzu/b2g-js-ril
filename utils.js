@@ -10,6 +10,6 @@ ffConsole.prototype = {
     this.consoleService.logStringMessage("My component: " + aMessage);
   },
 
-}
+};
 
 var console = new ffConsole();

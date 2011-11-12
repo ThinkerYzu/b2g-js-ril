@@ -46,6 +46,6 @@ function shutdown(data, reason) {
   // Re-enable the ourselves when we get disabled. That way you can reload this
   // code by simply clicking the "Disable" button in about:addons.
   AddonManager.getAddonByID(data.id, function(addon) {
-    addon.userDisabled = false;
-  });
+      addon.userDisabled = false;
+    });
 }

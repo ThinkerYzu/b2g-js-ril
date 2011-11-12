@@ -37,6 +37,8 @@ Phone.prototype = {
 		//this.ril.send(RIL_REQUEST_GET_IMSI);
 		// this.ril.send(RIL_REQUEST_BASEBAND_VERSION);
 	},
+  radioStateReceived : function(s) {
+  },
 	registerCallbacks: function() {
 		this.ril.addCallback(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, this.radioStateChangedRequest.bind(this) );
 		this.ril.addCallback(RIL_REQUEST_GET_IMSI, this.setIMSI.bind(this));
