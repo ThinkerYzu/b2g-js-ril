@@ -5,8 +5,10 @@
  * Base implementation.
  */
 function RILParcel(data) {
-    this.buffer = data;
-    this.baseUnpack();
+    if(data != undefined) {
+        this.buffer = data;
+        this.baseUnpack();
+    }
 };
 
 RILParcel.prototype = {
@@ -42,21 +44,27 @@ RILParcel.prototype = {
         if (this.response_type == 0) {
             this.token = arg;
             console.print("Received reply to Parcel " + this.token);
+            console.print([x for each (x in Uint8Array(this.buffer))]);
         } else {
             this.request_type = arg;
             console.print("Unsolicited request type " + this.request_type);
             this.setRequestTypeProperties();
+            console.print([x for each (x in Uint8Array(this.buffer))]);
         }
     },
+    setRequestType: function (rt) {
+        this.request_type = rt;
+        this.setRequestTypeProperties();
+    },
     setRequestTypeProperties: function (rt) {
-        if(rt == "undefined" && this.request_type == null) {
+        if(rt == undefined && this.request_type == null) {
             throw "Need a request type to set properties for parcel";
         }
         else if(this.request_type == null) {
             this.request_type = rt;
         }
-        for(p in this.parcel_types[this.request_type]) {
-            this[p] = this.parcel_types[this.request_type][p];
+        for(let x in this.parcel_types[this.request_type]) {
+            this[x] = this.parcel_types[this.request_type][x];
         }
     },
 
@@ -77,16 +85,16 @@ RILParcel.prototype = {
         }
         return buf;
     },
-    byteArrayToStr: function (s) {
+    byteArrayToStr: function (start, len) {
         var st = "";
-        for (x in Uint16Array(s)) st += String.fromCharCode(x);
+        for each (x in Uint16Array(this.buffer, start, len)) st += String.fromCharCode(x);
         return st;
     },
     voidUnpack: function () {
         this.data = [];
     },
     voidPack: function () {
-        // nop
+        return 0;
     },
     noUnpack: function () {
         throw "Parcel type does not allow for unpacking";
@@ -95,17 +103,21 @@ RILParcel.prototype = {
         throw "Parcel type does not allow for packing";
     },
     stringUnpack: function () {
-        this.data = byteArrayToStr(this.buffer);
+        let size = Uint32Array(this.buffer, 12, 1)[0];
+        this.data = this.byteArrayToStr(16, size);
     },
     stringPack: function () {
-        this.buffer = strToByteArray(this.data);
+        this.buffer = this.strToByteArray(this.data);
     },
     intUnpack: function() {
         this.data = Int32Array(this.buffer, 8, 1)[0];
     },
     intPack: function() {
-        this.buffer = ArrayBuffer(4);
-        Int32Array(this.buffer, 0, 1)[0] = data;
+        this.buffer = ArrayBuffer(8);
+        let pack_array = Int32Array(this.buffer, 0, 2);
+        pack_array[0] = 1;
+        pack_array[1] = data;
+        return 8;
     },
     stringListUnpack: function () {
     },
@@ -178,6 +190,7 @@ RILParcel.prototype = {
          unpack: p.stringUnpack
      };
      t[RIL_REQUEST_GET_IMEISV] = {
+         request_name: "RIL_REQUEST_GET_IMEISV",
          pack: p.voidPack,
          unpack: p.stringUnpack
      };

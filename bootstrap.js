@@ -18,13 +18,16 @@ function startup(data, reason) {
   load("ril_vars.js"); 
   load("utils.js");
   load("Parcel.js");
-
   load("RILManager.js");
   load("Phone.js");
+
+  ril = new RILManager();
+  phone = new Phone(ril);
+  
   load("socket.js");
   if(use_listener) {
     console.print("-------- Bringing up socket connection --------");
-    listener = new SocketListener();
+    listener = new SocketListener(ril, phone);
     listener.listen("localhost", "6200");
   }
   else {
