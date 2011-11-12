@@ -18,7 +18,9 @@ function startup(data, reason) {
   load("ril_vars.js"); 
   load("utils.js");
   load("Parcel.js");
+
   load("RILManager.js");
+  load("Phone.js");
   load("socket.js");
   if(use_listener) {
     console.print("-------- Bringing up socket connection --------");

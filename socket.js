@@ -23,11 +23,12 @@ SocketListener.prototype = {
     this.binaryInputStream = BinaryInputStream(this.inputStream);
     this.outputStream = this.socket.openOutputStream(0, 0, 0);
     this.binaryOutputStream = BinaryOutputStream(this.outputStream);
-    
+    this.p.registerCallbacks(this.m);
     this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
   },
 
   m: new RILManager(),
+  p: new Phone(),
   
   stop: function stop() {
     console.print("Stopping socket");
