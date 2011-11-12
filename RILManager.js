@@ -36,13 +36,8 @@ function RILManager() {
             }
             else {
                 // run this.callbacks for unsolicited
-                console.print(p.request_type);
-                console.print(this.callbacks[p.request_type]);
-                console.print(p.request_type in this.callbacks);
                 if(p.request_type in this.callbacks) {
-                    for(f in this.callbacks[p.request_type]){
-                        console.print("Running!");
-                        console.print(typeof(f));
+                    for each(f in this.callbacks[p.request_type]){
                         f(data);
                     }
                 }
@@ -55,12 +50,9 @@ function RILManager() {
         sendData: function sendData(parcel) {
         },
         addCallback: function (request_type, f){
-            console.print(typeof(f));
-            console.print(request_type);
             if(!(request_type in this.callbacks))
                 this.callbacks[request_type] = [];            
-            this.callbacks[request_type] += f;
-
+            this.callbacks[request_type].push(f);
         }
     };
 }

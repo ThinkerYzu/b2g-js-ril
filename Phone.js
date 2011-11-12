@@ -28,7 +28,7 @@ Phone.prototype = {
 		console.print("Radio state changed. Requesting status update");
 	},
 	registerCallbacks: function(rm) {
-		rm.addCallback(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, function(d) { this.radioStateChangedRequest(d); console.print("I ran!"); } );
+		rm.addCallback(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, this.radioStateChangedRequest.bind(this) );
 		// rm.addCallback(RIL_REQUEST_GET_IMSI, Phone.setIMSI, this);
 		// rm.addCallback(RIL_REQUEST_GET_IMEI, Phone.setIMEI, this);
 		// rm.addCallback(RIL_REQUEST_GET_IMEISV, Phone.setIMEISV, this);
