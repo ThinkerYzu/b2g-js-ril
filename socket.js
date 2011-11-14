@@ -52,6 +52,7 @@ SocketListener.prototype = {
   },
 
   processData: function processData(array_buffer) {
+    console.print([x for each (x in Uint8Array(array_buffer))]);
     this.ril.receive(array_buffer);
   },
 

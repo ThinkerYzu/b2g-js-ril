@@ -43,6 +43,7 @@ function RILManager() {
       {
         let currentLength = flipEndianess(data, offset);
         offset += 4;
+        console.print("dl " + data.length + " cl " + currentLength + " of " + offset);
         if(data.length < currentLength + offset) {
           console.print("---- WRITE A BETTER STATE MACHINE ----");
         }
