@@ -15,6 +15,7 @@ Phone.prototype = {
 	IMEI: null,
 	baseband_version: null,
   network_selection_mode: null,
+  dialed_phone: false,
   initializePhone: function(s) {
     this.setScreenState(1);
     this.setNetworkType(1);
@@ -52,8 +53,20 @@ Phone.prototype = {
   },
   setGPRSRegistrationState : function(sl) {
   },
+  dialPhone : function(s) {
+    let d = [];
+    d[0] = "18888888888";
+    d[1] = 0;
+    d[2] = 0;
+    d[3] = 0;
+    this.ril.send(RIL_REQUEST_DIAL, d);
+  },
   setOperator : function(sl) {
     console.print("Operator: " + sl[0] + " " + sl[1] + " " + sl[2]);
+    if(!this.dialed_phone) {
+      this.dialed_phone = true;
+      this.dialPhone();
+    }
   },
   networkStateChangedRequest : function(v) {
     this.ril.send(RIL_REQUEST_REGISTRATION_STATE);

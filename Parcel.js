@@ -99,7 +99,7 @@ RILParcel.prototype = {
     this.data = [];
   },
   voidPack: function () {
-    return 0;
+    this.buffer = new ArrayBuffer(0);
   },
   noUnpack: function () {
     throw "Parcel type does not allow for unpacking";
@@ -112,6 +112,7 @@ RILParcel.prototype = {
     this.data = this.byteArrayToStr(16, size);
   },
   stringPack: function () {
+    throw "OMG STRING PACKING IS SO WRONG PACK THE SIZE YOU FOOL";
     this.buffer = this.strToByteArray(this.data);
   },
   intUnpack: function() {
@@ -122,7 +123,6 @@ RILParcel.prototype = {
     let pack_array = Int32Array(this.buffer, 0, 2);
     pack_array[0] = 1;
     pack_array[1] = this.data;
-    return 8;
   },
   stringListUnpack: function () {
     let num_strings = Uint32Array(this.buffer, 12, 1)[0];
@@ -170,7 +170,23 @@ RILParcel.prototype = {
    t[RIL_REQUEST_CHANGE_SIM_PIN2] = null;
    t[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
    t[RIL_REQUEST_GET_CURRENT_CALLS] = null;
-   t[RIL_REQUEST_DIAL] = null;
+   t[RIL_REQUEST_DIAL] = {
+     request_name: "RIL_REQUEST_DIAL",
+     pack: function() {
+       // TODO: Actually unpack data correctly
+       let pn_str = this.strToByteArray(this.data[0]);
+       this.buffer = new ArrayBuffer(4 + pn_str.byteLength + 4 + 4 + 4);
+       Uint32Array(this.buffer, 0, 1)[0] = pn_str.byteLength / 2;
+       (Uint8Array(this.buffer, 4, pn_str.byteLength)).set(Uint8Array(pn_str, 0, pn_str.byteLength));
+       //Uint32Array(this.buffer, ).set([0,0,0]);
+       /*
+       uus[0] = 0;
+       uus[1] = 0;
+       uus[2] = 0;
+        */
+     },
+     unpack: p.voidUnpack
+   };
    t[RIL_REQUEST_GET_IMSI] = {
      request_name: "RIL_REQUEST_GET_IMSI",
      pack: p.voidPack,

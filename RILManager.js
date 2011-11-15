@@ -24,7 +24,8 @@ function RILManager() {
       p.setRequestType(request_type);
       p.token = this.tokenGen++;
       p.data = data;
-      let buff_length = p.pack();
+      p.pack();
+      let buff_length = p.buffer.byteLength;
       let buff = ArrayBuffer(12 + buff_length);
       let parcel_length = Uint32Array(buff, 0, 3);
       parcel_length[0] = 8 + buff_length;
