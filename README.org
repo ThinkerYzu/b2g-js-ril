@@ -1,3 +1,12 @@
+* b2g-js-ril
+
+This repository houses the javascript code for accessing the android
+radio interface layer (RIL) protocol. Using this project, along with
+the b2g-dialer-daemon
+(http://www.github.com/kmachulis-mozilla/b2g-dialer-daemon), on top of
+the gonk backend of B2G, the phone radio can be accessed from a
+desktop instance of firefox for testing and development.
+
 * Notes
 
 - Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
