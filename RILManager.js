@@ -18,6 +18,7 @@ function RILManager() {
     tokenGen: 1,
     outstanding_messages: {},
     callbacks: [],
+    currentLength: 0,
     send : function (request_type, data) {
       let p = new RILParcel();
       p.setRequestType(request_type);
@@ -41,15 +42,20 @@ function RILManager() {
       let offset = 0;
       while(data.length > offset)
       {
-        let currentLength = flipEndianess(data, offset);
-        offset += 4;
-        console.print("dl " + data.length + " cl " + currentLength + " of " + offset);
-        if(data.length < currentLength + offset) {
-          console.print("---- WRITE A BETTER STATE MACHINE ----");
+        if(this.currentLength == 0) {
+          if(offset + 4 > data.length) {
+            console.print("---- WRITE A BETTER STATE MACHINE ----");
+          }
+          this.currentLength = flipEndianess(data, offset);
+          offset += 4;
         }
-        let currentData = ArrayBuffer(currentLength);
-        Uint8Array(currentData).set(data.slice(offset, currentLength+offset));
-        offset += currentLength;
+        console.print("dl " + data.length + " cl " + this.currentLength + " of " + offset);
+        if(data.length < this.currentLength + offset) {
+          break;
+        }
+        let currentData = ArrayBuffer(this.currentLength);
+        Uint8Array(currentData).set(data.slice(offset, this.currentLength+offset));
+        offset += this.currentLength;
         p = new RILParcel(currentData);
         if(p.response_type == 0) {
           // match to our outgoing via token
@@ -62,7 +68,12 @@ function RILManager() {
           // run callbacks for outgoing type
           p.setRequestType(old.request_type);
         }
-        p.unpack();
+        if(p.unpack != undefined) {
+          p.unpack();
+        }
+        else {
+          console.print("No unpack function available for request type " + p.request_type);
+        }
         // run this.callbacks for unsolicited
         if(p.request_type in this.callbacks) {
           for each(let f in this.callbacks[p.request_type]){
@@ -72,6 +83,7 @@ function RILManager() {
         else {
           console.print("No callbacks for " + p.request_name);
         }
+        this.currentLength = 0;
       }
     },
     addCallback: function (request_type, f){
