@@ -14,8 +14,10 @@ desktop instance of firefox for testing and development.
 - ArrayBufferViews - https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBufferView
 - Bottom Error Console Plugin - https://addons.mozilla.org/en-US/firefox/addon/bottom-error-console/
 - Printfing to error console - https://developer.mozilla.org/en/nsIConsoleService
+- Pure JS DataView Implementation - https://github.com/davidflanagan/DataView.js
+- Multiple profiles - https://support.mozilla.com/en-US/kb/Managing-profiles
 
-* philikon's plugin tester 
+* philikon's plugin tester
 This makes this directory a Firefox add-on. Simply drop a proxy file
 (https://developer.mozilla.org/en/Setting_up_extension_development_environment#Firefox_extension_proxy_file)
 into your profile's 'extension' dir and the code will run when Firefox
