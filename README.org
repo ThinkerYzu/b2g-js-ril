@@ -7,6 +7,13 @@ the b2g-dialer-daemon
 the gonk backend of B2G, the phone radio can be accessed from a
 desktop instance of firefox for testing and development.
 
+* Port Forwarding
+
+To forward the port on the phone to the desktop (for desktop
+development), run the following command:
+
+adb forward tcp:6200 localreserved:rilb2g
+
 * Notes
 
 - Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
