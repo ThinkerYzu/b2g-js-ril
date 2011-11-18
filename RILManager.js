@@ -4,7 +4,7 @@
 // TODO: Make this more like parcel (i.e. prototyped, etc...)
 
 function RILManager() {
-  var sendFunc = null;
+  var send_func = null;
 
   function flipEndianess(buffer, offset) {
     // WHY DOES OFFSET NOT WORK HERE
@@ -15,15 +15,48 @@ function RILManager() {
   }
 
   return {
-    tokenGen: 1,
+    token_gen: 1,
     outstanding_messages: {},
     callbacks: [],
-    packet_queue: [],
-    currentLength: 0,
+    parcel_queue: [],
+    receive_state: 0,
+    current_size: 0,
+    current_length: 0,
+    current_data: null,
+    receive_sm: null,
+    rsm: function() {
+      this.current_data = ArrayBuffer();
+      while(1) {
+        while(this.current_data.byteLength < 4)
+        {
+          let data = yield;
+          this.pfData(data);
+        }
+        this.current_length = (new DataView(this.current_data, 0, 4)).getUint32(0, false);
+        this.popBackData(4);
+        while(this.current_data.byteLength < this.current_length)
+        {
+          let data = yield;
+          this.pfData(data);
+        }
+        let new_parcel = ArrayBuffer(this.current_length);
+        Uint8Array(new_parcel).set(Uint8Array(this.current_data, 0, this.current_length));
+        this.parcel_queue.push(new RILParcel(new_parcel));
+        this.popBackData(this.current_length);
+      }
+    },
+    receive: function(data) {
+      if(this.receive_sm == null)
+      {
+        this.receive_sm = this.rsm();
+        this.receive_sm.next();
+      }
+      this.receive_sm.send(data);
+    },
     send : function (request_type, data) {
       let p = new RILParcel();
       p.setRequestType(request_type);
-      p.token = this.tokenGen++;
+      p.token = this.token_gen++;
       p.data = data;
       p.pack();
       let buff_length = p.buffer.byteLength;
@@ -40,26 +73,17 @@ function RILManager() {
     setSendFunc : function(f) {
       this.sendFunc = f;
     },
-    receive: function (data) {
-      let offset = 0;
-      while(data.length > offset)
-      {
-        if(this.currentLength == 0) {
-          if(offset + 4 > data.length) {
-            console.print("---- WRITE A BETTER STATE MACHINE ----");
-          }
-          this.currentLength = flipEndianess(data, offset);
-          offset += 4;
-        }
-        console.print("dl " + data.length + " cl " + this.currentLength + " of " + offset);
-        if(data.length < this.currentLength + offset) {
-          break;
-        }
-        let currentData = ArrayBuffer(this.currentLength);
-        Uint8Array(currentData).set(data.slice(offset, this.currentLength+offset));
-        offset += this.currentLength;
-        this.parcel_queue.push(new RILParcel(currentData));
-      }
+    pushFrontData: function(data) {
+      console.print("Appending " + data.byteLength);
+      var new_data = ArrayBuffer(this.current_data.byteLength + data.byteLength);
+      Uint8Array(new_data, 0, this.current_data.byteLength).set(Uint8Array(this.current_data));
+      Uint8Array(new_data, this.current_data.byteLength, data.byteLength).set(Uint8Array(data));
+      this.current_data = new_data;
+    },
+    popBackData: function(l) {
+      var new_data = ArrayBuffer(this.current_data.byteLength - l);
+      Uint8Array(new_data).set(Uint8Array(this.current_data, l, this.current_data.byteLength-l));
+      this.current_data = new_data;
     },
     exhaust_queue: function () {
       while(this.parcel_queue.length > 0)
@@ -90,7 +114,7 @@ function RILManager() {
         else {
           console.print("No callbacks for " + p.request_name);
         }
-        this.currentLength = 0;
+        this.current_length = 0;
       }
     },
     addCallback: function (request_type, f){
