@@ -24,6 +24,17 @@ function RILManager() {
     current_length: 0,
     current_data: null,
     receive_sm: null,
+    pushBackData: function(data) {
+      var new_data = ArrayBuffer(this.current_data.byteLength + data.byteLength);
+      Uint8Array(new_data, 0, this.current_data.byteLength).set(Uint8Array(this.current_data));
+      Uint8Array(new_data, this.current_data.byteLength, data.byteLength).set(Uint8Array(data));
+      this.current_data = new_data;
+    },
+    popFrontData: function(l) {
+      var new_data = ArrayBuffer(this.current_data.byteLength - l);
+      Uint8Array(new_data).set(Uint8Array(this.current_data, l, this.current_data.byteLength-l));
+      this.current_data = new_data;
+    },
     rsm: function() {
       this.current_data = ArrayBuffer();
       while(1) {
@@ -33,7 +44,7 @@ function RILManager() {
           this.pfData(data);
         }
         this.current_length = (new DataView(this.current_data, 0, 4)).getUint32(0, false);
-        this.popBackData(4);
+        this.popFrontData(4);
         while(this.current_data.byteLength < this.current_length)
         {
           let data = yield;
@@ -42,7 +53,7 @@ function RILManager() {
         let new_parcel = ArrayBuffer(this.current_length);
         Uint8Array(new_parcel).set(Uint8Array(this.current_data, 0, this.current_length));
         this.parcel_queue.push(new RILParcel(new_parcel));
-        this.popBackData(this.current_length);
+        this.popFrontData(this.current_length);
       }
     },
     receive: function(data) {
@@ -72,18 +83,6 @@ function RILManager() {
     },
     setSendFunc : function(f) {
       this.sendFunc = f;
-    },
-    pushFrontData: function(data) {
-      console.print("Appending " + data.byteLength);
-      var new_data = ArrayBuffer(this.current_data.byteLength + data.byteLength);
-      Uint8Array(new_data, 0, this.current_data.byteLength).set(Uint8Array(this.current_data));
-      Uint8Array(new_data, this.current_data.byteLength, data.byteLength).set(Uint8Array(data));
-      this.current_data = new_data;
-    },
-    popBackData: function(l) {
-      var new_data = ArrayBuffer(this.current_data.byteLength - l);
-      Uint8Array(new_data).set(Uint8Array(this.current_data, l, this.current_data.byteLength-l));
-      this.current_data = new_data;
     },
     exhaust_queue: function () {
       while(this.parcel_queue.length > 0)
