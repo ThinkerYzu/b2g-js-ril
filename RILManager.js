@@ -6,14 +6,6 @@
 function RILManager() {
   var send_func = null;
 
-  function flipEndianess(buffer, offset) {
-    // WHY DOES OFFSET NOT WORK HERE
-    let d = Uint8Array(buffer, offset, 4);
-    // For some reason the array view doesn't treat the offset
-    // correctly, so we have to apply it ourselves.
-    return (d[3 + offset] | d[2 + offset] << 8 | d[1 + offset] << 16 | d[0 + offset] << 24);
-  }
-
   return {
     token_gen: 1,
     outstanding_messages: {},
@@ -41,14 +33,14 @@ function RILManager() {
         while(this.current_data.byteLength < 4)
         {
           let data = yield;
-          this.pfData(data);
+          this.pushBackData(data);
         }
         this.current_length = (new DataView(this.current_data, 0, 4)).getUint32(0, false);
         this.popFrontData(4);
         while(this.current_data.byteLength < this.current_length)
         {
           let data = yield;
-          this.pfData(data);
+          this.pushBackData(data);
         }
         let new_parcel = ArrayBuffer(this.current_length);
         Uint8Array(new_parcel).set(Uint8Array(this.current_data, 0, this.current_length));
@@ -74,10 +66,11 @@ function RILManager() {
       let buff = ArrayBuffer(12 + buff_length);
       let parcel_length = Uint32Array(buff, 0, 3);
       parcel_length[0] = 8 + buff_length;
-      parcel_length.set([flipEndianess(buff,0), p.request_type, p.token]);
+      parcel_length.set([(new DataView(buff, 0, 4)).getUint32(0, false), p.request_type, p.token]);
       if(buff_length > 0) {
         Uint8Array(buff, 12, buff_length).set(Uint8Array(p.buffer));
       }
+      console.print([x for each (x in Uint8Array(buff))]);
       this.sendFunc(buff);
       this.outstanding_messages[p.token] = p;
     },
@@ -85,6 +78,8 @@ function RILManager() {
       this.sendFunc = f;
     },
     exhaust_queue: function () {
+      //TODO: Fix
+      /*
       while(this.parcel_queue.length > 0)
       {
         if(p.response_type == 0) {
@@ -115,6 +110,7 @@ function RILManager() {
         }
         this.current_length = 0;
       }
+       */
     },
     addCallback: function (request_type, f){
       if(!(request_type in this.callbacks))
