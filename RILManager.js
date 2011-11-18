@@ -18,6 +18,7 @@ function RILManager() {
     tokenGen: 1,
     outstanding_messages: {},
     callbacks: [],
+    packet_queue: [],
     currentLength: 0,
     send : function (request_type, data) {
       let p = new RILParcel();
@@ -57,7 +58,12 @@ function RILManager() {
         let currentData = ArrayBuffer(this.currentLength);
         Uint8Array(currentData).set(data.slice(offset, this.currentLength+offset));
         offset += this.currentLength;
-        p = new RILParcel(currentData);
+        this.parcel_queue.push(new RILParcel(currentData));
+      }
+    },
+    exhaust_queue: function () {
+      while(this.parcel_queue.length > 0)
+      {
         if(p.response_type == 0) {
           // match to our outgoing via token
           if(!(p.token in this.outstanding_messages)) {

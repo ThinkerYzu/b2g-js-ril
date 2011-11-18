@@ -15,17 +15,18 @@ function startup(data, reason) {
     Services.scriptloader.loadSubScript(data.resourceURI.spec + file,
                                         GLOBAL_SCOPE);
   }
-  load("ril_vars.js"); 
+  load("DataView.js");
+  load("ril_vars.js");
   load("utils.js");
   load("Parcel.js");
   load("RILManager.js");
   load("Phone.js");
 
-  ril = new RILManager();
-  phone = new Phone(ril);
-  
-  load("socket.js");
   if(use_listener) {
+    ril = new RILManager();
+    phone = new Phone(ril);
+
+    load("socket.js");
     console.print("-------- Bringing up socket connection --------");
     listener = new SocketListener(ril, phone);
     listener.listen("localhost", "6200");
@@ -35,7 +36,6 @@ function startup(data, reason) {
     load("test.js");
     runTests();
   }
-  
 }
 
 
