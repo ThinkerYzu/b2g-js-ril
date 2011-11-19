@@ -37,7 +37,18 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/*
+ * Various tests for portions of the js RIL handler. Will probably be
+ * turned into mochitests at some point, right now just running them
+ * linearly because that does the job fine.
+ */
+
 "use strict";
+
+/*
+ * Quick assertion class since I'm not sure how to assert in JS
+ * otherwise.
+ */
 
 function AssertException(message) { this.message = message; }
 AssertException.prototype.toString = function () {
@@ -50,13 +61,26 @@ function assert(exp, message) {
   }
 }
 
+/*
+ * Utility functions for tests
+ */
+
+
 function testPacket(p) {
+  /*
+   * Test function for putting chunked parcels back together. Makes
+   * sure we recreated the parcel correctly.
+   */
+  
   assert(p.response_type == 1, "p.response_type == 1");
   assert(p.request_type == RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED,"p.request_type == RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED");
   assert(p.data == 0, "p.data == 0");
 }
 
 function testSender(p) {
+  /*
+   * Test callback, used for making sure send creates packets correctly.
+   */
   let dv = new DataView(p, 0, 20);
   assert(dv.getUint32(0, false) == 16, "of0 == 16");
   assert(dv.getUint32(4, true) == RIL_REQUEST_RADIO_POWER,"of4 == RIL_REQUEST_RADIO_POWER");
@@ -66,6 +90,11 @@ function testSender(p) {
 }
 
 function runTests() {
+  
+  /*********************************
+   * Parcel Receive Tests
+   *********************************/
+  
   //Create a byte array that looks like a raw parcel
   var test_parcel = new ArrayBuffer(16);
   var dv_test = new DataView(test_parcel, 0);
@@ -73,8 +102,11 @@ function runTests() {
   dv_test.setUint32(4, 1, true);
   dv_test.setUint32(8, RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, true);
   dv_test.setUint32(12, 0, true);
-
+  
   {
+    /*
+     * Receive a packet length and data as a single buffer
+     */
     console.print("===== Receive whole");
     let ril = new RILManager();
     ril.receive(test_parcel);
@@ -83,7 +115,9 @@ function runTests() {
   }
 
   {
-    //Create a RIL Manager
+    /*
+     * Receive a packet length and data as different buffers
+     */
     console.print("===== Receive in chunks with full size and single data receive");
     let ril = new RILManager();
     let parcel_parts = Array();
@@ -100,7 +134,10 @@ function runTests() {
   }
 
   {
-    //Create a RIL Manager
+    /*
+     * Receive a packet length and data as different buffers, with data
+     * distributed through different buffers also.
+     */
     console.print("===== Receive in full size and chunked data ");
     let ril = new RILManager();
     let parcel_parts = Array();
@@ -121,6 +158,10 @@ function runTests() {
   }
 
   {
+    /*
+     * Receive all data in weird sized chunks, making sure that both
+     * packet length and data are chunked.
+     */
     console.print("=====  chunked size and chunked data");
     let ril = new RILManager();
     let parcel_parts = Array();
@@ -141,8 +182,14 @@ function runTests() {
     testPacket(ril.parcel_queue[0]);
   }
 
-  //Send a parcel
+  /*********************************
+   * Parcel Send Tests
+   *********************************/
+
   {
+    /*
+     * Send a parcel, wire callback through tester function
+     */
     console.print("===== Send parcel");
     let ril = new RILManager();
     ril.setSendFunc(testSender);

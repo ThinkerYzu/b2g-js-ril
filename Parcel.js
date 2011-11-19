@@ -46,7 +46,7 @@
  * Base implementation.
  */
 function RILParcel(data) {
-  if(data != undefined) {
+  if(data !== undefined) {
     this.buffer = data;
     this.baseUnpack();
   }
@@ -73,24 +73,17 @@ RILParcel.prototype = {
   token: null,
   pack: null,
   unpack: null,
-  offset: null,
 
   baseUnpack: function () {
     // Solicited parcels look like [response_type = 0, serial]
     // Unsolicited parcels look like [response_type != 0, request_type]
     let arg;
     [this.response_type, arg] = new Int32Array(this.buffer, 0, 2);
-    this.offset += 8;
-    console.print("Response type " + this.response_type);
     if (this.response_type == 0) {
       this.token = arg;
-      console.print("Received reply to Parcel " + this.token);
-      console.print([x for each (x in Uint8Array(this.buffer))]);
     } else {
       this.request_type = arg;
-      console.print("Unsolicited request type " + this.request_type);
       this.setRequestTypeProperties();
-      console.print([x for each (x in Uint8Array(this.buffer))]);
       this.unpack();
     }
   },
@@ -111,14 +104,6 @@ RILParcel.prototype = {
     for(let x in this.parcel_types[this.request_type]) {
       this[x] = this.parcel_types[this.request_type][x];
     }
-  },
-
-  basePack: function () {
-    /**
-     * Buffer size needs to be:
-     * 8 bytes (Request Type + Token)
-     * + Data (defined by Parcel return type)
-     */
   },
   strToByteArray: function(s) {
     var buf = ArrayBuffer(s.length * 2);

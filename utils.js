@@ -1,4 +1,4 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -37,17 +37,25 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/*
+ * Utility functions for testing RIL as part of firefox extension.
+ */
+
+
+
 "use strict";
 
-function ffConsole() { }
 
+/*
+ * Prints non-error messges to Firefox error console
+ * Useful with Bottom Error Console plugin
+ */
+function ffConsole() { }
 ffConsole.prototype = {
   consoleService: Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService),
-  
+
   print: function print(aMessage) {
     this.consoleService.logStringMessage("My component: " + aMessage);
-  },
-
+  }
 };
-
 var console = new ffConsole();
