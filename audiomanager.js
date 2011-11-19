@@ -10,7 +10,9 @@
 * 
 * Use: 
 *     AudioManager.send(AUDIO_REQUEST_FORCE_COMMUNICATION);
-*/
+ 
+ */
+"use strict";
 
 // Audio functions code
 const AUDIO_REQUEST_FORCE_COMMUNICATION = 2000;

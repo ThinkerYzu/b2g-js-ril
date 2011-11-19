@@ -1,6 +1,8 @@
 /* -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 
+"use strict";
+
 function AssertException(message) { this.message = message; }
 AssertException.prototype.toString = function () {
   return 'AssertException: ' + this.message;

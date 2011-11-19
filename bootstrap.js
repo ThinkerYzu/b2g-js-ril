@@ -1,5 +1,8 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+
+"use strict";
+
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -8,7 +11,7 @@ Cu.import("resource://gre/modules/AddonManager.jsm");
 const GLOBAL_SCOPE = this;
 
 let listener;
-let use_listener = true;
+let use_listener = false;
 
 function startup(data, reason) {
   function load(file) {

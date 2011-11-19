@@ -1,7 +1,10 @@
 /* -*- tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 
+"use strict";
+
 // TODO: Parse status from received parcels
+
 
 /**
  * Base implementation.
@@ -52,6 +55,7 @@ RILParcel.prototype = {
       console.print("Unsolicited request type " + this.request_type);
       this.setRequestTypeProperties();
       console.print([x for each (x in Uint8Array(this.buffer))]);
+      this.unpack();
     }
   },
   setRequestType: function (rt) {

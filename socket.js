@@ -1,5 +1,8 @@
 /* -*- tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+
+"use strict";
+
 const gTransportService = Cc["@mozilla.org/network/socket-transport-service;1"]
   .getService(Ci.nsISocketTransportService);
 
