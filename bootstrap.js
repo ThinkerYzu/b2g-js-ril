@@ -25,16 +25,15 @@ function startup(data, reason) {
   load("RILManager.js");
   load("Phone.js");
 
-  if(use_listener) {
-    ril = new RILManager();
-    phone = new Phone(ril);
+  if (use_listener) {
+    let ril = new RILManager();
+    let phone = new Phone(ril);
 
     load("socket.js");
     console.print("-------- Bringing up socket connection --------");
     listener = new SocketListener(ril, phone);
     listener.listen("localhost", "6200");
-  }
-  else {
+  } else {
     console.print("-------- Running Test File --------");
     load("test.js");
     runTests();
@@ -43,12 +42,12 @@ function startup(data, reason) {
 
 
 function shutdown(data, reason) {
-  if(typeof(listener) !== "undefined") {
+  if (typeof listener !== "undefined") {
     listener.stop();
   }
   // Re-enable the ourselves when we get disabled. That way you can reload this
   // code by simply clicking the "Disable" button in about:addons.
   AddonManager.getAddonByID(data.id, function(addon) {
-      addon.userDisabled = false;
-    });
+    addon.userDisabled = false;
+  });
 }
