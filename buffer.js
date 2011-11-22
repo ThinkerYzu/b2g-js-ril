@@ -11,8 +11,14 @@
  * every time a parcel is sent.
  */
 
-const INCOMING_BUFFER_LENGTH = 512;
-const OUTGOING_BUFFER_LENGTH = 512;
+const UINT8_SIZE  = 1;
+const UINT16_SIZE = 2;
+const UINT32_SIZE = 4;
+const PARCEL_SIZE_SIZE = UINT32_SIZE;
+
+//TODO review these values
+const INCOMING_BUFFER_LENGTH = 2048;
+const OUTGOING_BUFFER_LENGTH = 2048;
 
 const gIncomingBuffer = new ArrayBuffer(INCOMING_BUFFER_LENGTH);
 const gOutgoingBuffer = new ArrayBuffer(OUTGOING_BUFFER_LENGTH);
@@ -20,11 +26,19 @@ const gOutgoingBuffer = new ArrayBuffer(OUTGOING_BUFFER_LENGTH);
 const gIncomingBytes = new Uint8Array(gIncomingBuffer);
 const gOutgoingBytes = new Uint8Array(gOutgoingBuffer);
 
+// Leave room for the parcel size for outgoing parcels.
 let gIncomingIndex = 0;
-let gOutgoingIndex = 0;
+let gOutgoingIndex = PARCEL_SIZE_SIZE;
+function reset() {
+  gIncomingIndex = 0;
+  gOutgoingIndex = PARCEL_SIZe_SIZE;
+}
+
 
 /**
  * Functions for reading data from the incoming buffer.
+ * 
+ * These are all little endian, apart from readParcelSize();
  */
 
 function readUint8() {
@@ -34,11 +48,11 @@ function readUint8() {
 }
 
 function readUint16() {
-  return readUint8() << 8 | readUint8();
+  return readUint8() | readUint8() << 8;
 }
 
 function readUint32() {
-  return readUint8() << 24 | readUint8() << 16 | readUint8() << 8 | readUint8();
+  return readUint8() | readUint8() << 8 | readUint8() << 16 | readUint8() << 24;
 }
 
 function readString(byte_length) {
@@ -52,6 +66,9 @@ function readString(byte_length) {
   return s;
 }
 
+function readParcelSize() {
+  return getUint8() << 24 | getUint8() << 16 | getUint8() << 8 | getUint8();
+}
 
 /**
  * Functions for writing data to the outgoing buffer.
@@ -63,15 +80,15 @@ function writeUint8(value) {
 }
 
 function writeUint16(value) {
-  writeUint8((value >> 8) & 0xff);
   writeUint8(value & 0xff);
+  writeUint8((value >> 8) & 0xff);
 }
 
 function writeUint32(value) {
-  writeUint8((value >> 24) & 0xff);
-  writeUint8((value >> 16) & 0xff);
-  writeUint8((value >> 8) & 0xff);
   writeUint8(value & 0xff);
+  writeUint8((value >> 8) & 0xff);
+  writeUint8((value >> 16) & 0xff);
+  writeUint8((value >> 24) & 0xff);
 }
 
 function writeString(value) {
@@ -80,13 +97,18 @@ function writeString(value) {
   }
 }
 
+function writeParcelSize(value) {
+  writeUint8((value >> 24) & 0xff);
+  writeUint8((value >> 16) & 0xff);
+  writeUint8((value >> 8) & 0xff);
+  writeUint8(value & 0xff);
+}
+
 
 /**
  * Parcel management
  */
 
-// State of the current packet we are accumulating in buffer.
-const UINT32_SIZE = 4;
 // How many bytes we've read for this parcel so far.
 let gReadIncoming = 0;
 // Size of the incoming parcel. If this is zero, we're expecting a new parcel.
@@ -125,14 +147,14 @@ function processIncoming(incoming) {
   while (true) {
     if (!gCurrentParcelSize) {
       // We're expecting a new parcel.
-      if (gReadIncoming < UINT32_SIZE) {
+      if (gReadIncoming < PARCEL_SIZE_SIZE) {
         // We're don't know how big the next parcel is going to be, need more
         // data.
         return;
       }
-      gCurrentParcelSize = readUint32();
+      gCurrentParcelSize = readParcelSize();
       // The size itself is not included in the size.
-      gReadIncoming -= UINT32_SIZE;
+      gReadIncoming -= PARCEL_SIZE_SIZE;
     }
 
     if (gReadIncoming < gCurrentParcelSize) {
@@ -181,6 +203,20 @@ function processParcel() {
 }
 
 
+let gToken = 1;
+function newToken() {
+  return gToken++;
+}
+function newParcel(type) {
+  // We're going to leave room for the parcel size at the beginning.
+  gOutgoingIndex = PARCEL_SIZE_SIZE;
+  let token = newToken();
+  writeUint32(type);
+  writeUint32(token);
+  //TODO remember token -> type mapping
+  return token;
+}
+
 /**
  * Communication with the RIL IPC thread.
  */
@@ -190,8 +226,16 @@ this.addEventListener("message", function onMessage(event) {
 });
 
 function sendParcel() {
+  // Compute the size of the parcel and write it to the front of the parcel
+  // where we left room for it. Note that he parcel size does not include the
+  // size itself.
+  let parcelSize = gOutgoingIndex - PARCEL_SIZE_SIZE;
+  gOutgoingIndex = 0;
+  writeParcelSize(parcelSize);
+
   //TODO XXX this assumes that postRILMessage can eat a ArrayBufferView!
   let parcel = gOutgoingBuffer.subarray(0, gOutgoingIndex);
   postRILMessage(parcel);
-  gOutgoingIndex = 0;
+
+  gOutgoingIndex = PARCEL_SIZE_SIZE;
 }
