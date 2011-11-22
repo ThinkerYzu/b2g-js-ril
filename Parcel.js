@@ -52,96 +52,9 @@
 /**
  * Base implementation.
  */
-function RILParcel(data) {
-  /**
-   * If the argument isn't undefined, it means we're getting an
-   * already made packet and just need to parse it.
-   */
-  if(data !== undefined) {
-    this.buffer = data;
-    this.baseUnpack();
-  }
-};
+function RILParcel() {};
 
 RILParcel.prototype = {
-  /**
-   * ArrayBuffer representing the bytes for the parcel.
-   */
-  buffer: null,
-
-  /**
-   * Array of some type that will be filled either during unpack (for
-   * incoming messages), or before packing (for outgoing messages).
-   */
-  data: [],
-
-  /**
-   * Common parcel attributes.
-   */
-  response_type: null,
-  request_type: null,
-  length: null,
-  token: null,
-  /**
-   * Mixin functions for packing/unpacking data, set by the parcel
-     request_type.
-   */
-  pack: null,
-  unpack: null,
-  
-  /**
-   * Basic unpacking function for all parcels, to retreive preamble.
-   * 
-   * Solicited parcels look like [response_type = 0, serial]
-   * Unsolicited parcels look like [response_type != 0, request_type]
-   */
-  baseUnpack: function () {
-
-    let arg;
-    [this.response_type, arg] = new Int32Array(this.buffer, 0, 2);
-    if (this.response_type == 0) {
-      this.token = arg;
-    } else {
-      this.request_type = arg;
-      this.setRequestTypeProperties();
-      this.unpack();
-    }    
-  },
-  /**
-   * For parcels being constructed by hand, set request type and 
-   * pertaining mixin features
-   */
-  setRequestType: function (rt) {
-    this.request_type = rt;
-    this.setRequestTypeProperties();
-  },
-  /**
-   * Sets up mixin features based on request type of parcel
-   */
-  setRequestTypeProperties: function (rt) {
-    // All parcels must have a request type
-    if(rt == undefined && this.request_type == null) {
-      throw "Need a request type to set properties for parcel";
-    }
-    // We've been passed a new request type to set
-    else if(this.request_type == null) {
-      this.request_type = rt;
-    }
-    /**
-     * There are points where we may have a parcel type we don't know
-     * about. This doesn't throw, since there seem to be points where
-     * ril implementations issuess end up in wrong parsing/types (right
-     * after the radio is turned on on a Galaxy Samsung SII, for
-     * instance)
-     */
-    if(!(this.request_type in this.parcel_types)) {
-      console.print("---------- ERROR Parcel type " + this.request_type  + " UNKNOWN");
-    }
-    // Add mixins
-    for(let x in this.parcel_types[this.request_type]) {
-      this[x] = this.parcel_types[this.request_type][x];
-    }
-  },
   /**
    * Turn a string into an array buffer of 16-bit chars
    */
