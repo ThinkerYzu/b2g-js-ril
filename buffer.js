@@ -42,6 +42,20 @@ let Buf = {
     // Leave room for the parcel size for outgoing parcels.
     this.incomingIndex = 0;
     this.outgoingIndex = PARCEL_SIZE_SIZE;
+
+    // How many bytes we've read for this parcel so far.
+    this.readIncoming = 0;
+
+    // Size of the incoming parcel. If this is zero, we're expecting a new
+    // parcel.
+    this.currentParcelSize = 0;
+
+    // This gets incremented each time we send out a parcel.
+    this.token = 1;
+
+    // Maps tokens we send out with requests to the request type, so that
+    // when we get a response parcel back, we know what request it was for.
+    this.tokenRequestMap = {};
   },
 
 
@@ -131,13 +145,6 @@ let Buf = {
    * Parcel management
    */
 
-  // How many bytes we've read for this parcel so far.
-  readIncoming: 0,
-
-  // Size of the incoming parcel. If this is zero, we're expecting a new
-  // parcel.
-  currentParcelSize: 0,
-
   /**
    * Write data to the circular buffer.
    */
@@ -145,7 +152,7 @@ let Buf = {
     if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
       dump("Uh-oh. " + incoming.length + " bytes is too much for my little " +
            "short term memory.");
-    },
+    }
 
     // We can let the typed arrays do the copying if the incoming data won't
     // wrap around the edges of the circular buffer.
@@ -228,9 +235,6 @@ let Buf = {
     RIL.handleParcel(request_type, length);
   },
 
-  token: 1,
-  tokenRequestMap: {},
-
   newParcel: function newParcel(type) {
     // We're going to leave room for the parcel size at the beginning.
     this.outgoingIndex = PARCEL_SIZE_SIZE;
@@ -264,6 +268,8 @@ let Buf = {
     this.sendParcel();
   }
 };
+
+Buf.init();
 
 //TODO we're going to need a way to distinguish between events from the
 // RIL IPC thread and events from the UI thread...
