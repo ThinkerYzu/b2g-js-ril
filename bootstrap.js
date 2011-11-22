@@ -18,12 +18,9 @@ function startup(data, reason) {
     Services.scriptloader.loadSubScript(data.resourceURI.spec + file,
                                         GLOBAL_SCOPE);
   }
-  load("DataView.js");
   load("ril_vars.js");
+  load("ril_worker.js");
   load("utils.js");
-  load("Parcel.js");
-  load("RILManager.js");
-  load("Phone.js");
 
   if (use_listener) {
     let ril = new RILManager();
