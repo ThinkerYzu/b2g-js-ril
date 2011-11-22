@@ -66,6 +66,16 @@ function readString(byte_length) {
   return s;
 }
 
+function readStringList() {
+  let num_strings = readUint32();
+  let strings = [];
+  for (let i = 0; i < num_strings; i++) {
+    let str_length = readUint32();
+    strings.push(readString(str_length));
+  }
+  return strings;
+}
+
 function readParcelSize() {
   return getUint8() << 24 | getUint8() << 16 | getUint8() << 8 | getUint8();
 }
@@ -188,32 +198,37 @@ const RESPONSE_TYPE_UNSOLICITED = 1;
 
 function processParcel() {
   let response_type = readUint32();
+  let length = gReadIncoming - 2 * UINT32_SIZE;
+
+  let request_type;
   if (response_type == RESPONSE_TYPE_SOLICITED) {
     let token = readUint32();
-    let length = gReadIncoming - 2 * UINT32_SIZE;
-    //TODO XXX dispatch callbacks here
-    //
+    request_type = gTokenRequestMap[token];
   } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
-    let request_type = readUint32();
-    let length = gReadIncoming - 2 * UINT32_SIZE;
-    //TODO XXX dispatch callbacks here
+    request_type = readUint32();
   } else {
     dump("Unknown response type: " + response_type);
+    return;
   }
+
+  Phone.handleParcel(request_type, length);
 }
 
 
 let gToken = 1;
+let gTokenRequestMap = {};
+
 function newToken() {
   return gToken++;
 }
+
 function newParcel(type) {
   // We're going to leave room for the parcel size at the beginning.
   gOutgoingIndex = PARCEL_SIZE_SIZE;
   let token = newToken();
   writeUint32(type);
   writeUint32(token);
-  //TODO remember token -> type mapping
+  gTokenRequestMap[token] = type;
   return token;
 }
 
@@ -239,3 +254,235 @@ function sendParcel() {
 
   gOutgoingIndex = PARCEL_SIZE_SIZE;
 }
+
+function simpleRequest(type) {
+  newParcel(type);
+  sendParcel();
+}
+
+
+/**
+ * High level object representing the phone. This is where parcels are
+ * sent and received from.
+ */
+
+//XXX TODO beware, this is just demo code, showing what the high level
+// processing of the parcels would look like.
+
+let Phone = {
+
+  ril: null,
+  IMEISV: null,
+  IMSI: null,
+  operator: null,
+  IMEI: null,
+  baseband_version: null,
+  network_selection_mode: null,
+
+  /**
+   * Outgoing requests to the RIL.
+   */
+
+  dialPhone: function dialPhone(address, clirMode, uusInfo) {
+    newParcel(RIL_REQUEST_DIAL);
+    writeString(address);
+    writeUint32(clirMode || 0);
+    writeUint32(uusInfo || 0);
+    sendParcel();
+  },
+
+  networkStateChanged: function networkStateChanged() {
+    simpleRequest(RIL_REQUEST_REGISTRATION_STATE);
+    simpleRequest(RIL_REQUEST_GPRS_REGISTRATION_STATE);
+    simpleRequest(RIL_REQUEST_OPERATOR);
+  },
+
+  radioStateChanged: function(radioState) {
+    if (radioState == RADIOSTATE_OFF) {
+      newParcel(RIL_REQUEST_RADIO_POWER);
+      writeUint32(1);
+      writeUint32(on ? 1 : 0);
+      sendParcel();
+    } else {
+      if (this.IMEI == null) {
+        simpleRequest(RIL_REQUEST_GET_IMEI);
+        this.networkStateChangedRequest();
+      }
+      if (this.IMEISV == null) {
+        simpleRequest(RIL_REQUEST_GET_IMEISV);
+      }
+      if (this.baseband_version == null) {
+        simpleRequest(RIL_REQUEST_BASEBAND_VERSION);
+      }
+    }
+  },
+
+  //TODO add moar stuff here.
+
+  /**
+   * Handle incoming requests from the RIL. We find the method that
+   * corresponds to the request type. Incidentally, the request type
+   * _is_ the method name, so that's easy.
+   */
+
+  handleParcel: function handleParcel(request_type, length) {
+    let method = this[request_type];
+    if (typeof method == "function") {
+      method.call(this, length);
+    }
+  }
+};
+
+Phone[RIL_REQUEST_GET_SIM_STATUS] = null,
+Phone[RIL_REQUEST_ENTER_SIM_PIN] = null;
+Phone[RIL_REQUEST_ENTER_SIM_PUK] = null;
+Phone[RIL_REQUEST_ENTER_SIM_PIN2] = null;
+Phone[RIL_REQUEST_ENTER_SIM_PUK2] = null;
+Phone[RIL_REQUEST_CHANGE_SIM_PIN] = null;
+Phone[RIL_REQUEST_CHANGE_SIM_PIN2] = null;
+Phone[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
+Phone[RIL_REQUEST_GET_CURRENT_CALLS] = null;
+Phone[RIL_REQUEST_DIAL] = null;
+Phone[RIL_REQUEST_GET_IMSI] = function RIL_REQUEST_GET_IMSI(length) {
+  this.IMSI = readString(length);
+  //TODO send a change event to the mainthread?
+};
+Phone[RIL_REQUEST_HANGUP] = null;
+Phone[RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND] = null;
+Phone[RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = null;
+Phone[RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = null;
+Phone[RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE] = null;
+Phone[RIL_REQUEST_CONFERENCE] = null;
+Phone[RIL_REQUEST_UDUB] = null;
+Phone[RIL_REQUEST_LAST_CALL_FAIL_CAUSE] = null;
+Phone[RIL_REQUEST_SIGNAL_STRENGTH] = null;
+Phone[RIL_REQUEST_REGISTRATION_STATE] = function RIL_REQUEST_REGISTRATION_STATE(length) {
+  this.registrationState = readStringList();
+  //TODO send a change event to the mainthread?
+};
+Phone[RIL_REQUEST_GPRS_REGISTRATION_STATE] = function RIL_REQUEST_GPRS_REGISTRATION_STATE(length) {
+  this.gprsRegistrationState = readStringList();
+  //TODO send a change event to the mainthread?
+};
+Phone[RIL_REQUEST_OPERATOR] = function RIL_REQUEST_OPERATOR(length) {
+  this.operator = readStringList();
+  //TODO send a change event to the mainthread?
+};
+Phone[RIL_REQUEST_RADIO_POWER] = null;
+Phone[RIL_REQUEST_DTMF] = null;
+Phone[RIL_REQUEST_SEND_SMS] = null;
+Phone[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = null;
+Phone[RIL_REQUEST_SETUP_DATA_CALL] = null;
+Phone[RIL_REQUEST_SIM_IO] = null;
+Phone[RIL_REQUEST_SEND_USSD] = null;
+Phone[RIL_REQUEST_CANCEL_USSD] = null;
+Phone[RIL_REQUEST_GET_CLIR] = null;
+Phone[RIL_REQUEST_SET_CLIR] = null;
+Phone[RIL_REQUEST_QUERY_CALL_FORWARD_STATUS] = null;
+Phone[RIL_REQUEST_SET_CALL_FORWARD] = null;
+Phone[RIL_REQUEST_QUERY_CALL_WAITING] = null;
+Phone[RIL_REQUEST_SET_CALL_WAITING] = null;
+Phone[RIL_REQUEST_SMS_ACKNOWLEDGE] = null;
+Phone[RIL_REQUEST_GET_IMEI] = function RIL_REQUEST_GET_IMEI(length) {
+  this.IMEI = readString(length);
+  //TODO send a change event to the mainthread?
+};
+Phone[RIL_REQUEST_GET_IMEISV] = null;
+Phone[RIL_REQUEST_ANSWER] = null;
+Phone[RIL_REQUEST_DEACTIVATE_DATA_CALL] = null;
+Phone[RIL_REQUEST_QUERY_FACILITY_LOCK] = null;
+Phone[RIL_REQUEST_SET_FACILITY_LOCK] = null;
+Phone[RIL_REQUEST_CHANGE_BARRING_PASSWORD] = null;
+Phone[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE] = null;
+Phone[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = null;
+Phone[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL] = null;
+Phone[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS] = null;
+Phone[RIL_REQUEST_DTMF_START] = null;
+Phone[RIL_REQUEST_DTMF_STOP] = null;
+Phone[RIL_REQUEST_BASEBAND_VERSION] = null,
+Phone[RIL_REQUEST_SEPARATE_CONNECTION] = null;
+Phone[RIL_REQUEST_SET_MUTE] = null;
+Phone[RIL_REQUEST_GET_MUTE] = null;
+Phone[RIL_REQUEST_QUERY_CLIP] = null;
+Phone[RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
+Phone[RIL_REQUEST_DATA_CALL_LIST] = null;
+Phone[RIL_REQUEST_RESET_RADIO] = null;
+Phone[RIL_REQUEST_OEM_HOOK_RAW] = null;
+Phone[RIL_REQUEST_OEM_HOOK_STRINGS] = null;
+Phone[RIL_REQUEST_SCREEN_STATE] = null;
+Phone[RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION] = null;
+Phone[RIL_REQUEST_WRITE_SMS_TO_SIM] = null;
+Phone[RIL_REQUEST_DELETE_SMS_ON_SIM] = null;
+Phone[RIL_REQUEST_SET_BAND_MODE] = null;
+Phone[RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE] = null;
+Phone[RIL_REQUEST_STK_GET_PROFILE] = null;
+Phone[RIL_REQUEST_STK_SET_PROFILE] = null;
+Phone[RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND] = null;
+Phone[RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE] = null;
+Phone[RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = null;
+Phone[RIL_REQUEST_EXPLICIT_CALL_TRANSFER] = null;
+Phone[RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE] = null;
+Phone[RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE] = null;
+Phone[RIL_REQUEST_GET_NEIGHBORING_CELL_IDS] = null;
+Phone[RIL_REQUEST_SET_LOCATION_UPDATES] = null;
+Phone[RIL_REQUEST_CDMA_SET_SUBSCRIPTION] = null;
+Phone[RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE] = null;
+Phone[RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = null;
+Phone[RIL_REQUEST_SET_TTY_MODE] = null;
+Phone[RIL_REQUEST_QUERY_TTY_MODE] = null;
+Phone[RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = null;
+Phone[RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = null;
+Phone[RIL_REQUEST_CDMA_FLASH] = null;
+Phone[RIL_REQUEST_CDMA_BURST_DTMF] = null;
+Phone[RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = null;
+Phone[RIL_REQUEST_CDMA_SEND_SMS] = null;
+Phone[RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE] = null;
+Phone[RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG] = null;
+Phone[RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG] = null;
+Phone[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION] = null;
+Phone[RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG] = null;
+Phone[RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG] = null;
+Phone[RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = null;
+Phone[RIL_REQUEST_CDMA_SUBSCRIPTION] = null;
+Phone[RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
+Phone[RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
+Phone[RIL_REQUEST_DEVICE_IDENTITY] = null;
+Phone[RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
+Phone[RIL_REQUEST_GET_SMSC_ADDRESS] = null;
+Phone[RIL_REQUEST_SET_SMSC_ADDRESS] = null;
+Phone[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
+Phone[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
+Phone[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED(length) {
+  let radioState = readUint32(); //XXX I don't think this is right
+  this.radioStateChanged(radioState);
+};
+Phone[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = null;
+Phone[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = null;
+Phone[RIL_UNSOL_RESPONSE_NEW_SMS] = null;
+Phone[RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT] = null;
+Phone[RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM] = null;
+Phone[RIL_UNSOL_ON_USSD] = null;
+Phone[RIL_UNSOL_ON_USSD_REQUEST] = null;
+Phone[RIL_UNSOL_NITZ_TIME_RECEIVED] = null;
+Phone[RIL_UNSOL_SIGNAL_STRENGTH] = null;
+Phone[RIL_UNSOL_DATA_CALL_LIST_CHANGED] = null;
+Phone[RIL_UNSOL_SUPP_SVC_NOTIFICATION] = null;
+Phone[RIL_UNSOL_STK_SESSION_END] = null;
+Phone[RIL_UNSOL_STK_PROACTIVE_COMMAND] = null;
+Phone[RIL_UNSOL_STK_EVENT_NOTIFY] = null;
+Phone[RIL_UNSOL_STK_CALL_SETUP] = null;
+Phone[RIL_UNSOL_SIM_SMS_STORAGE_FULL] = null;
+Phone[RIL_UNSOL_SIM_REFRESH] = null;
+Phone[RIL_UNSOL_CALL_RING] = null;
+Phone[RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED] = null;
+Phone[RIL_UNSOL_RESPONSE_CDMA_NEW_SMS] = null;
+Phone[RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS] = null;
+Phone[RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL] = null;
+Phone[RIL_UNSOL_RESTRICTED_STATE_CHANGED] = null;
+Phone[RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE] = null;
+Phone[RIL_UNSOL_CDMA_CALL_WAITING] = null;
+Phone[RIL_UNSOL_CDMA_OTA_PROVISION_STATUS] = null;
+Phone[RIL_UNSOL_CDMA_INFO_REC] = null;
+Phone[RIL_UNSOL_OEM_HOOK_RAW] = null;
+Phone[RIL_UNSOL_RINGBACK_TONE] = null;
+Phone[RIL_UNSOL_RESEND_INCALL_MUTE] = null;
