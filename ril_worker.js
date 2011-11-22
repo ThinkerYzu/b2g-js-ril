@@ -50,17 +50,17 @@ const UINT32_SIZE = 4;
 const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 const RESPONSE_TYPE_SOLICITED = 0;
-const RESPONSE_TYPE_UNSOLICITED = 1;  
+const RESPONSE_TYPE_UNSOLICITED = 1;
 
 /**
  * This object contains helpers buffering incoming data & deconstructing it
  * into parcels as well as buffering outgoing data & constructing parcels.
  * For that it maintains two buffers and corresponding uint8 views, indexes.
- * 
+ *
  * The incoming buffer is a circular buffer where we store incoming data.
  * As soon as a complete parcel is received, it is processed right away, so
  * the buffer only needs to be large enough to hold one parcel.
- * 
+ *
  * The outgoing buffer is to prepare outgoing parcels. The index is reset
  * every time a parcel is sent.
  */
@@ -80,6 +80,7 @@ let Buf = {
     // Leave room for the parcel size for outgoing parcels.
     this.incomingIndex = 0;
     this.outgoingIndex = PARCEL_SIZE_SIZE;
+    this.currentByte = 0;
 
     // How many bytes we've read for this parcel so far.
     this.readIncoming = 0;
@@ -104,8 +105,11 @@ let Buf = {
    */
 
   readUint8: function readUint8() {
-    let value = this.incomingBytes[this.incomingIndex];
-    this.incomingIndex = (this.incomingIndex + 1) % INCOMING_BUFFER_LENGTH;
+    let value = this.incomingBytes[this.currentByte];
+    this.currentByte++;
+    if(this.currentByte > this.INCOMING_BUFFER_LENGTH) {
+      throw "Read off end of parcel";
+    }
     return value;
   },
 
@@ -114,6 +118,7 @@ let Buf = {
   },
 
   readUint32: function readUint32() {
+    console.print("reading at " + this.currentByte);
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
   },
@@ -140,8 +145,8 @@ let Buf = {
   },
 
   readParcelSize: function readParcelSize() {
-    return this.getUint8() << 24 | this.getUint8() << 16 |
-           this.getUint8() <<  8 | this.getUint8();
+    return this.readUint8() << 24 | this.readUint8() << 16 |
+           this.readUint8() <<  8 | this.readUint8();
   },
 
   /**
@@ -210,10 +215,11 @@ let Buf = {
    * Process incoming data.
    */
   processIncoming: function processIncoming(incoming) {
-    this.writeToIncoming(buffer);
-    this.readIncoming += buffer.length;
-
+    this.writeToIncoming(incoming);
+    this.readIncoming += incoming.length;
+    dump("Read Incoming: " + this.readIncoming);
     while (true) {
+          dump("Read Incoming: " + this.readIncoming);
       if (!this.currentParcelSize) {
         // We're expecting a new parcel.
         if (this.readIncoming < PARCEL_SIZE_SIZE) {
@@ -238,13 +244,14 @@ let Buf = {
 
       // Ensure that the whole parcel was consumed.
       let expectedIndex = (before + this.currentParcelSize) %
-                          INCOMING_BUFFER_LENGTH;
+                          this.INCOMING_BUFFER_LENGTH;
       if (this.incomingIndex != expectedIndex) {
         dump("Parcel handling code did not consume the right amount of data! " +
              "Expected: " + expectedIndex + " Actual: " + this.incomingIndex);
         this.incomingIndex = expectedIndex;
       }
-
+      this.currentByte = 0;
+      this.incomingIndex = 0;
       this.readIncoming -= this.currentParcelSize;
       this.currentParcelSize = 0;
     }
@@ -260,11 +267,11 @@ let Buf = {
 
     let request_type;
     if (response_type == RESPONSE_TYPE_SOLICITED) {
-      let token = readUint32();
+      let token = this.readUint32();
       request_type = this.tokenRequestMap[token];
       delete this.tokenRequestMap[token];
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
-      request_type = readUint32();
+      request_type = this.readUint32();
     } else {
       dump("Unknown response type: " + response_type);
       return;
@@ -311,9 +318,9 @@ Buf.init();
 
 //TODO we're going to need a way to distinguish between events from the
 // RIL IPC thread and events from the UI thread...
-this.addEventListener("message", function onMessage(event) {
-  Buf.processIncoming(event.data);
-});
+// this.addEventListener("message", function onMessage(event) {
+//   Buf.processIncoming(event.data);
+// });
 
 
 /**
@@ -541,3 +548,4 @@ RIL[RIL_UNSOL_CDMA_INFO_REC] = null;
 RIL[RIL_UNSOL_OEM_HOOK_RAW] = null;
 RIL[RIL_UNSOL_RINGBACK_TONE] = null;
 RIL[RIL_UNSOL_RESEND_INCALL_MUTE] = null;
+

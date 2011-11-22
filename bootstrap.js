@@ -23,9 +23,6 @@ function startup(data, reason) {
   load("utils.js");
 
   if (use_listener) {
-    let ril = new RILManager();
-    let phone = new Phone(ril);
-
     load("socket.js");
     console.print("-------- Bringing up socket connection --------");
     listener = new SocketListener(ril, phone);

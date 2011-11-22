@@ -56,13 +56,13 @@ SocketListener.prototype = {
 
   processData: function processData(array_buffer) {
     console.print([x for each (x in Uint8Array(array_buffer))]);
-    this.ril.receive(array_buffer);
+    Buf.processIncoming(array_buffer);
   },
 
   sendData: function sendData(array_buffer) {
-    let byte_array = Uint8Array(array_buffer);
-    this.binaryOutputStream.writeByteArray([x for each (x in byte_array)], byte_array.length);
-    this.binaryOutputStream.flush();
+    // let byte_array = Uint8Array(array_buffer);
+    // this.binaryOutputStream.writeByteArray([x for each (x in byte_array)], byte_array.length);
+    // this.binaryOutputStream.flush();
   }
 
 };

@@ -64,17 +64,17 @@ function assert(exp, message) {
 /*
  * Utility functions for tests
  */
-
-
 function testPacket(p) {
   /*
    * Test function for putting chunked parcels back together. Makes
    * sure we recreated the parcel correctly.
    */
-  
-  assert(p.response_type == 1, "p.response_type == 1");
-  assert(p.request_type == RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED,"p.request_type == RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED");
-  assert(p.data == 0, "p.data == 0");
+  let response = Buf.readUint32();
+  assert(response == 1, "response should be 1, is " + response);
+  let request = Buf.readUint32();
+  assert(request == RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED,"p.request_type should be RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED (1000), is " + request);
+  let data = Buf.readUint32();
+  assert(data == 0, "data should be 0 is " + data);
 }
 
 function testSender(p) {
@@ -94,24 +94,21 @@ function runTests() {
   /*********************************
    * Parcel Receive Tests
    *********************************/
-  
+
   //Create a byte array that looks like a raw parcel
-  var test_parcel = new ArrayBuffer(16);
-  var dv_test = new DataView(test_parcel, 0);
-  dv_test.setUint32(0, 12, false);
-  dv_test.setUint32(4, 1, true);
-  dv_test.setUint32(8, RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, true);
-  dv_test.setUint32(12, 0, true);
+  let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
+  
+  let old_process_parcel = Buf.processParcel;
+  Buf.processParcel = testPacket;
   
   {
     /*
      * Receive a packet length and data as a single buffer
      */
     console.print("===== Receive whole");
-    let ril = new RILManager();
-    ril.receive(test_parcel);
-    assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
-    testPacket(ril.parcel_queue[0]);
+    Buf.processIncoming(test_parcel);
+    //assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
+    //testPacket(ril.parcel_queue[0]);
   }
 
   {
