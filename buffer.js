@@ -225,7 +225,7 @@ let Buf = {
       return;
     }
 
-    Phone.handleParcel(request_type, length);
+    RIL.handleParcel(request_type, length);
   },
 
   token: 1,
