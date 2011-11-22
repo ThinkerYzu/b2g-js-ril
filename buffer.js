@@ -34,11 +34,11 @@ function readUint8() {
 }
 
 function readUint16() {
-  return getUint8() << 8 | getUint8();
+  return readUint8() << 8 | readUint8();
 }
 
 function readUint32() {
-  return getUint8() << 24 | getUint8() << 16 | getUint8() << 8 | getUint8();
+  return readUint8() << 24 | readUint8() << 16 | readUint8() << 8 | readUint8();
 }
 
 function readString(byte_length) {
@@ -165,14 +165,14 @@ const RESPONSE_TYPE_SOLICITED = 0;
 const RESPONSE_TYPE_UNSOLICITED = 1;  
 
 function processParcel() {
-  let response_type = getUint32();
+  let response_type = readUint32();
   if (response_type == RESPONSE_TYPE_SOLICITED) {
-    let token = getUint32();
+    let token = readUint32();
     let length = gReadIncoming - 2 * UINT32_SIZE;
     //TODO XXX dispatch callbacks here
     //
   } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
-    let request_type = getUint32();
+    let request_type = readUint32();
     let length = gReadIncoming - 2 * UINT32_SIZE;
     //TODO XXX dispatch callbacks here
   } else {
