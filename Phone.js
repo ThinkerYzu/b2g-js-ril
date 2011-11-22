@@ -90,13 +90,12 @@ Phone.prototype = {
   },
   setGPRSRegistrationState : function(sl) {
   },
-  dialPhone : function(s) {
-    let d = [];
-    d[0] = "18888888888";
-    d[1] = 0;
-    d[2] = 0;
-    d[3] = 0;
-    this.ril.send(RIL_REQUEST_DIAL, d);
+  dialPhone : function(address, clirMode, uusInfo) {
+    newParcel(RIL_REQUEST_DIAL);
+    writeString(address);
+    writeUint32(clirMode || 0);
+    writeUint32(uusInfo || 0);
+    sendParcel();
   },
   setOperator : function(sl) {
     console.print("Operator: " + sl[0] + " " + sl[1] + " " + sl[2]);
