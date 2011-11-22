@@ -265,6 +265,8 @@ let Buf = {
   }
 };
 
+//TODO we're going to need a way to distinguish between events from the
+// RIL IPC thread and events from the UI thread...
 this.addEventListener("message", function onMessage(event) {
   Buf.processIncoming(event.data);
 });
