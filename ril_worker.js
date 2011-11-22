@@ -77,10 +77,14 @@ let Buf = {
     this.incomingBytes = new Uint8Array(this.incomingBuffer);
     this.outgoingBytes = new Uint8Array(this.outgoingBuffer);
 
-    // Leave room for the parcel size for outgoing parcels.
+    // Track where incoming data is read from and written to.
+    //XXX I think we could fold this into one index just like we do it
+    // with outgoingIndex.
     this.incomingIndex = 0;
-    this.outgoingIndex = PARCEL_SIZE_SIZE;
     this.currentByte = 0;
+
+    // Leave room for the parcel size for outgoing parcels.
+    this.outgoingIndex = PARCEL_SIZE_SIZE;
 
     // How many bytes we've read for this parcel so far.
     this.readIncoming = 0;
@@ -106,8 +110,8 @@ let Buf = {
 
   readUint8: function readUint8() {
     let value = this.incomingBytes[this.currentByte];
-    this.currentByte++;
-    if(this.currentByte > this.INCOMING_BUFFER_LENGTH) {
+    this.currentByte += 1;
+    if (this.currentByte > this.INCOMING_BUFFER_LENGTH) {
       throw "Read off end of parcel";
     }
     return value;
@@ -118,7 +122,7 @@ let Buf = {
   },
 
   readUint32: function readUint32() {
-    console.print("reading at " + this.currentByte);
+    dump("Reading at " + this.currentByte);
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
   },
@@ -155,7 +159,7 @@ let Buf = {
 
   writeUint8: function writeUint8(value) {
     this.outgoingBytes[this.outgoingIndex] = value;
-    this.outgoingBytes += 1;
+    this.outgoingIndex += 1;
   },
 
   writeUint16: function writeUint16(value) {
@@ -217,9 +221,8 @@ let Buf = {
   processIncoming: function processIncoming(incoming) {
     this.writeToIncoming(incoming);
     this.readIncoming += incoming.length;
-    dump("Read Incoming: " + this.readIncoming);
     while (true) {
-          dump("Read Incoming: " + this.readIncoming);
+      dump("Read Incoming: " + this.readIncoming);
       if (!this.currentParcelSize) {
         // We're expecting a new parcel.
         if (this.readIncoming < PARCEL_SIZE_SIZE) {
@@ -302,6 +305,8 @@ let Buf = {
     this.writeParcelSize(parcelSize);
 
     //TODO XXX this assumes that postRILMessage can eat a ArrayBufferView!
+    // It also assumes that it will make a copy of the ArrayBufferView right
+    // away.
     let parcel = this.outgoingBuffer.subarray(0, this.outgoingIndex);
     postRILMessage(parcel);
 
