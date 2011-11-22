@@ -68,51 +68,14 @@ RILManager.prototype = {
    */
   outstanding_messages: {},
   /**
-   * List of callback functions. List of lists, indexed by response
-   * type.
-   */
-  callbacks: [],
-  /**
-   * Queue of parcels that have been constructed by the receive
-   * function, but that still need to be passed to listeners via
-   * callbacks.
-   */
-  parcel_queue: [],
-  /**
    * Used for keeping final length of parcel currently being
    * constructed by receive.
    */
   current_length: 0,
   /**
-   * Used for keeping data buffer of parcel currently being
-   * constructed by receive
-   */
-  current_data: null,
-  /**
    * Storage for receive generator.
    */
   receive_sm: null,
-  /**
-   * Appends new data to the raw buffer currently being used to
-   * construct parcels. Gross, but due to ArrayBuffer's not really
-   * being made to be splittable/mergable yet, it does the job.
-   */
-  pushBackData: function(data) {
-    var new_data = ArrayBuffer(this.current_data.byteLength + data.byteLength);
-    Uint8Array(new_data, 0, this.current_data.byteLength).set(Uint8Array(this.current_data));
-    Uint8Array(new_data, this.current_data.byteLength, data.byteLength).set(Uint8Array(data));
-    this.current_data = new_data;
-  },
-  /**
-   * Pops data off the front of the raw buffer currently being used to
-   * construct parcels. Gross, but due to ArrayBuffer's not really
-   * being made to be splittable/mergable yet, it does the job.
-   */
-  popFrontData: function(l) {
-    var new_data = ArrayBuffer(this.current_data.byteLength - l);
-    Uint8Array(new_data).set(Uint8Array(this.current_data, l, this.current_data.byteLength-l));
-    this.current_data = new_data;
-  },
   /**
    * Receive state machine (rsm). Uses generators (argumented yields)
    * in order to stop at the point it's currently parsing at, to wait
@@ -141,10 +104,17 @@ RILManager.prototype = {
       // Read full parcel, copy into new ArrayBuffer
       let new_parcel = ArrayBuffer(this.current_length);
       Uint8Array(new_parcel).set(Uint8Array(this.current_data, 0, this.current_length));
-      // Queue for processing at a later point
-      this.parcel_queue.push(new RILParcel(new_parcel));
-      // Remove parcel data from raw buffer
-      this.popFrontData(this.current_length);
+      // Parse response type and either request or token, 
+      let arg, request_type, token;
+      let response_type = getUint32();
+      if (this.response_type == 0) {
+        token = getUint32();
+        request_type = this.outstanding_messages[token];
+        delete this.outstanding_messages[token];
+      } else {
+        request_type = getUint32();
+      }
+      RILParcel.parcel_types[request_type].parse();
     }
   },
   /**
@@ -187,62 +157,13 @@ RILManager.prototype = {
     }
     // Send via callback, put onto list for response waiting
     this.sendFunc(buff);
-    this.outstanding_messages[p.token] = p;
+    this.outstanding_messages[p.token] = request_type;
   },
   /**
    * Sets up callback for sending out parcels
    */
   setSendFunc : function(f) {
     this.sendFunc = f;
-  },
-  /**
-   * Runs through the parcel queue, running callbacks on all parcels
-   * that have related functions. No callback should ever block at
-   * this level.
-   */
-  exhaust_queue: function () {
-    //TODO: Fix
-    /*
-     while(this.parcel_queue.length > 0)
-     {
-     if(p.response_type == 0) {
-     // match to our outgoing via token
-     if(!(p.token in this.outstanding_messages)) {
-     throw "Cannot find outgoing message of token " + p.token;
-     }
-     // get type of outgoing
-     let old = this.outstanding_messages[p.token];
-     delete this.outstanding_messages[p.token];
-     // run callbacks for outgoing type
-     p.setRequestType(old.request_type);
-     }
-     if(p.unpack != undefined) {
-     p.unpack();
-     }
-     else {
-     console.print("No unpack function available for request type " + p.request_type);
-     }
-     // run this.callbacks for unsolicited
-     if(p.request_type in this.callbacks) {
-     for each(let f in this.callbacks[p.request_type]){
-     f(p.data);
-     }
-     }
-     else {
-     console.print("No callbacks for " + p.request_name);
-     }
-     this.current_length = 0;
-     }
-     */
-  },
-  /**
-   * Add a callback to be called whenever a response to a certain
-   * request type is received.
-   */
-  addCallback: function (request_type, f){
-    if(!(request_type in this.callbacks))
-      this.callbacks[request_type] = [];
-    this.callbacks[request_type].push(f);
   }
 };
 
