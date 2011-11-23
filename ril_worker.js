@@ -134,12 +134,10 @@ let Buf = {
            this.readUint8() << 16 | this.readUint8() << 24;
   },
 
-  readString: function readString(byte_length) {
-    if (byte_length % 2) {
-      throw "String length must be multiple of 2.";
-    }
+  readString: function readString() {
+	let string_len = this.readUint32();
     let s = "";
-    for (let i = 0; i < byte_length / 2; i++) {
+    for (let i = 0; i < string_len; i++) {
       s += String.fromCharCode(this.readUint16());
     }
     return s;
@@ -149,8 +147,7 @@ let Buf = {
     let num_strings = this.readUint32();
     let strings = [];
     for (let i = 0; i < num_strings; i++) {
-      let str_length = this.readUint32();
-      strings.push(this.readString(str_length));
+      strings.push(this.readString());
     }
     return strings;
   },
@@ -182,6 +179,7 @@ let Buf = {
   },
 
   writeString: function writeString(value) {
+	this.writeUint32(value.length);
     for (let i = 0; i < value.length; i++) {
       this.writeUint16(value.charCodeAt(i));
     }
@@ -319,13 +317,8 @@ let Buf = {
     // It also assumes that it will make a copy of the ArrayBufferView right
     // away.
     let parcel = this.outgoingBytes.subarray(0, this.outgoingIndex);
-    this.sendParcelImpl(parcel);
-
-    this.outgoingIndex = PARCEL_SIZE_SIZE;
-  },
-
-  sendParcelImpl: function sendParcelImpl(parcel) {
     postRILMessage(parcel);
+    this.outgoingIndex = PARCEL_SIZE_SIZE;
   },
 
   simpleRequest: function simpleRequest(type) {
@@ -370,6 +363,9 @@ let RIL = {
     Buf.writeString(address);
     Buf.writeUint32(clirMode || 0);
     Buf.writeUint32(uusInfo || 0);
+	// TODO Why do we need this extra 0? It was put it in to make this
+	// match the format of the binary message.
+	Buf.writeUint32(0);
     Buf.sendParcel();
   },
 
@@ -381,9 +377,10 @@ let RIL = {
 
   radioStateChanged: function(radioState) {
     if (radioState == RADIOSTATE_OFF) {
+	  debug("Turning radio on");
       Buf.newParcel(RIL_REQUEST_RADIO_POWER);
       Buf.writeUint32(1);
-      Buf.writeUint32(on ? 1 : 0);
+      Buf.writeUint32(1);//on ? 1 : 0);
       Buf.sendParcel();
     } else {
       if (this.IMEI == null) {
