@@ -1,0 +1,8 @@
+TODO
+----
+
+* Convert test.js into an xpcshell-test
+* Build out more functionality for network status, signal strenght,
+  phone calls, SMS, etc. in the RIL object (and test.js, test.html)
+* Implement communication with mainthread via postMessage
+* Fake mainthread communication by including test.html in <iframe>
