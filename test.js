@@ -42,9 +42,9 @@
  * Various tests for portions of the js RIL handler. Will probably be
  * turned into mochitests at some point, right now just running them
  * linearly because that does the job fine.
- * 
+ *
  * Run this on the command line as
- * 
+ *
  *   $ path/to/js test.js
  *
  */
@@ -114,54 +114,44 @@ function testSender(p) {
   /*
    * Test callback, used for making sure send creates packets correctly.
    */
-  let dv = new DataView(p, 0, 20);
-  assert(dv.getUint32(0, false) == 16, "of0 == 16");
-  assert(dv.getUint32(4, true) == RIL_REQUEST_RADIO_POWER,"of4 == RIL_REQUEST_RADIO_POWER");
-  assert(dv.getUint32(8, true) == 1, "of8 == 1");
-  assert(dv.getUint32(12, true) == 1, "of12 == 1");
-  assert(dv.getUint32(16, true) == 1, "of16 == 1");
+
+  let test_parcel = [0,0,0,12,23,0,0,0,1,0,0,0,1,0,0,0];
+  for(let i = 0; i < p.byteLength; ++i) {
+    assert(test_parcel[i] === p[i], "Index " + i + " does not match");
+  }
 }
 
 function runTests() {
-  
+
   /*********************************
    * Parcel Receive Tests
    *********************************/
 
   //Create a byte array that looks like a raw parcel
-  let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
-  
+
+
   let old_process_parcel = Buf.processParcel;
   Buf.processParcel = testPacket;
-  
+
   {
     /*
      * Receive a packet length and data as a single buffer
      */
     print("===== Receive whole");
+    let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
     Buf.processIncoming(test_parcel);
     //assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
     //testPacket(ril.parcel_queue[0]);
   }
 
-return;//XXX
   {
     /*
      * Receive a packet length and data as different buffers
      */
     print("===== Receive in chunks with full size and single data receive");
-    let ril = new RILManager();
-    let parcel_parts = Array();
-    parcel_parts[0] = ArrayBuffer(4);
-    Uint8Array(parcel_parts[0]).set(Uint8Array(test_parcel, 0, 4));
-    parcel_parts[1] = ArrayBuffer(12);
-    Uint8Array(parcel_parts[1]).set(Uint8Array(test_parcel, 4, 12));
-    for each (x in parcel_parts) {
-      assert(ril.parcel_queue.length == 0, "ril.parcel_queue.length == 0");
-      ril.receive(x);
-    };
-    assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
-    testPacket(ril.parcel_queue[0]);
+    let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
+    Buf.processIncoming(test_parcel.splice(0, 4));
+    Buf.processIncoming(test_parcel.splice(0, 12));
   }
 
   {
@@ -170,22 +160,11 @@ return;//XXX
      * distributed through different buffers also.
      */
     print("===== Receive in full size and chunked data ");
-    let ril = new RILManager();
-    let parcel_parts = Array();
-    parcel_parts[0] = ArrayBuffer(4);
-    Uint8Array(parcel_parts[0]).set(Uint8Array(test_parcel, 0, 4));
-    parcel_parts[1] = ArrayBuffer(5);
-    Uint8Array(parcel_parts[1]).set(Uint8Array(test_parcel, 4, 5));
-    parcel_parts[2] = ArrayBuffer(3);
-    Uint8Array(parcel_parts[2]).set(Uint8Array(test_parcel, 9, 3));
-    parcel_parts[3] = ArrayBuffer(4);
-    Uint8Array(parcel_parts[3]).set(Uint8Array(test_parcel, 12, 4));
-    for each (x in parcel_parts) {
-      assert(ril.parcel_queue.length == 0, "ril.parcel_queue.length == 0");
-      ril.receive(x);
-    };
-    assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
-    testPacket(ril.parcel_queue[0]);
+    let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
+    Buf.processIncoming(test_parcel.splice(0, 4));
+    Buf.processIncoming(test_parcel.splice(0, 5));
+    Buf.processIncoming(test_parcel.splice(0, 3));
+    Buf.processIncoming(test_parcel.splice(0, 4));
   }
 
   {
@@ -194,37 +173,30 @@ return;//XXX
      * packet length and data are chunked.
      */
     print("=====  chunked size and chunked data");
-    let ril = new RILManager();
-    let parcel_parts = Array();
-    parcel_parts[0] = ArrayBuffer(3);
-    Uint8Array(parcel_parts[0]).set(Uint8Array(test_parcel, 0, 3));
-    parcel_parts[1] = ArrayBuffer(5);
-    Uint8Array(parcel_parts[1]).set(Uint8Array(test_parcel, 3, 5));
-    parcel_parts[2] = ArrayBuffer(4);
-    Uint8Array(parcel_parts[2]).set(Uint8Array(test_parcel, 8, 4));
-    parcel_parts[3] = ArrayBuffer(4);
-    Uint8Array(parcel_parts[3]).set(Uint8Array(test_parcel, 12, 4));
-    for each (x in parcel_parts) {
-      assert(ril.parcel_queue.length == 0, "ril.parcel_queue.length == 0");
-      ril.receive(x);
-    };
-
-    assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
-    testPacket(ril.parcel_queue[0]);
+    let test_parcel = [0,0,0,12,1,0,0,0,232,3,0,0,0,0,0,0];
+    Buf.processIncoming(test_parcel.splice(0, 3));
+    Buf.processIncoming(test_parcel.splice(0, 5));
+    Buf.processIncoming(test_parcel.splice(0, 4));
+    Buf.processIncoming(test_parcel.splice(0, 4));
   }
+
+  Buf.processParcel = old_process_parcel;
 
   /*********************************
    * Parcel Send Tests
    *********************************/
+
+  let old_send_parcel = Buf.sendParcelImpl;
+  Buf.sendParcelImpl = testSender;
 
   {
     /*
      * Send a parcel, wire callback through tester function
      */
     print("===== Send parcel");
-    let ril = new RILManager();
-    ril.setSendFunc(testSender);
-    ril.send(RIL_REQUEST_RADIO_POWER, 1);  
+    Buf.newParcel(RIL_REQUEST_RADIO_POWER);
+    Buf.writeUint32(1);
+    Buf.sendParcel();
   }
   print("--------- All tests passed ---------");
 };

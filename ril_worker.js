@@ -188,10 +188,18 @@ let Buf = {
   },
 
   writeParcelSize: function writeParcelSize(value) {
+    /**
+     *  Parcel size will always be the first thing in the parcel byte
+     *  array, but the last thing written. Store the current index off
+     *  to a temporary to be reset after we write the size.
+     */
+    let currentIndex = this.outgoingIndex;
+    this.outgoingIndex = 0;
     this.writeUint8((value >> 24) & 0xff);
     this.writeUint8((value >> 16) & 0xff);
     this.writeUint8((value >> 8) & 0xff);
     this.writeUint8(value & 0xff);
+    this.outgoingIndex = currentIndex;
   },
 
 
@@ -250,16 +258,12 @@ let Buf = {
 
       // Alright, we have enough data to process at least one whole parcel.
       // Let's do that.
-      let before = this.incomingIndex;
       this.processParcel();
 
       // Ensure that the whole parcel was consumed.
-      let expectedIndex = (before + this.currentParcelSize) %
-                          this.INCOMING_BUFFER_LENGTH;
-      if (this.incomingIndex != expectedIndex) {
+      if (this.incomingIndex != this.currentByte) {
         debug("Parcel handling code did not consume the right amount of data! " +
-              "Expected: " + expectedIndex + " Actual: " + this.incomingIndex);
-        this.incomingIndex = expectedIndex;
+              "Expected: " + this.currentByte + " Actual: " + this.incomingIndex);
       }
       this.currentByte = 0;
       this.incomingIndex = 0;
@@ -294,8 +298,8 @@ let Buf = {
   newParcel: function newParcel(type) {
     // We're going to leave room for the parcel size at the beginning.
     this.outgoingIndex = PARCEL_SIZE_SIZE;
-    writeUint32(type);
-    writeUint32(this.token);
+    this.writeUint32(type);
+    this.writeUint32(this.token);
     this.tokenRequestMap[this.token] = type;
     this.token += 1;
   },
@@ -309,16 +313,19 @@ let Buf = {
     // where we left room for it. Note that he parcel size does not include
     // the size itself.
     let parcelSize = this.outgoingIndex - PARCEL_SIZE_SIZE;
-    this.outgoingIndex = 0;
     this.writeParcelSize(parcelSize);
 
     //TODO XXX this assumes that postRILMessage can eat a ArrayBufferView!
     // It also assumes that it will make a copy of the ArrayBufferView right
     // away.
-    let parcel = this.outgoingBuffer.subarray(0, this.outgoingIndex);
-    postRILMessage(parcel);
+    let parcel = this.outgoingBytes.subarray(0, this.outgoingIndex);
+    this.sendParcelImpl(parcel);
 
     this.outgoingIndex = PARCEL_SIZE_SIZE;
+  },
+
+  sendParcelImpl: function sendParcelImpl(parcel) {
+    postRILMessage(parcel);
   },
 
   simpleRequest: function simpleRequest(type) {
