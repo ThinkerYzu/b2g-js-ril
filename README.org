@@ -1,32 +1,41 @@
 * b2g-js-ril
 
-This repository houses the javascript code for accessing the android
+This repository houses the JavaScript code for accessing the android
 radio interface layer (RIL) protocol. Using this project, along with
 the b2g-dialer-daemon
 (http://www.github.com/kmachulis-mozilla/b2g-dialer-daemon), on top of
 the gonk backend of B2G, the phone radio can be accessed from a
-desktop instance of firefox for testing and development.
+desktop instance of Firefox for testing and development.
 
-* Port Forwarding
+* Development notes
 
-To forward the port on the phone to the desktop (for desktop
-development), run the following command:
-
-adb forward tcp:6200 localreserved:rilb2g
-
-* Notes
-
+- B2G RIL notes on the Mozilla wiki - https://wiki.mozilla.org/B2G/RIL
 - Modules in Javascript - https://developer.mozilla.org/en/JavaScript_code_modules/Using
 - Typed Arrays - https://developer.mozilla.org/en/JavaScript_typed_arrays
 - ArrayBufferViews - https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBufferView
 - Bottom Error Console Plugin - https://addons.mozilla.org/en-US/firefox/addon/bottom-error-console/
 - Printfing to error console - https://developer.mozilla.org/en/nsIConsoleService
-- Pure JS DataView Implementation - https://github.com/davidflanagan/DataView.js
 - Multiple profiles - https://support.mozilla.com/en-US/kb/Managing-profiles
 
-* philikon's plugin tester
-This makes this directory a Firefox add-on. Simply drop a proxy file
+* Running tests
+
+Using the 'js' interpreter executable from a Firefox build:
+
+  js test.js
+
+* Port forwarding
+
+To forward the port on the phone to the desktop (for desktop
+development), run the following command:
+
+  adb forward tcp:6200 localreserved:rilb2g
+
+* Interactive testing in Firefox
+
+This directory can be installed as a Firefox add-on. Simply drop a
+proxy file
 (https://developer.mozilla.org/en/Setting_up_extension_development_environment#Firefox_extension_proxy_file)
-into your profile's 'extension' dir and the code will run when Firefox
-starts up. You can click the "Disable" button in about:addons to
-reload the code.
+called 'b2g-js-ril@mozilla.org' into your profile's 'extension' dir.
+Then open the testing page at 'chrome://ril/content/test.html' which
+is able to connect to the forwarded socket, thus mimicking the RIL IPC
+thread, and run the RIL worker code.
