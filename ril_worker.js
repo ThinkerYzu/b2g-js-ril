@@ -179,7 +179,7 @@ let Buf = {
   },
 
   writeString: function writeString(value) {
-	this.writeUint32(value.length);
+    this.writeUint32(value.length);
     for (let i = 0; i < value.length; i++) {
       this.writeUint16(value.charCodeAt(i));
     }
