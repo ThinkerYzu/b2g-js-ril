@@ -51,6 +51,8 @@
 
 "use strict";
 
+const B2G_TEST_PARCEL = 12345678;
+
 /**
  * Fake postMessage and worker APIs.
  */
@@ -64,6 +66,9 @@ function postMessage(message) {
   for (let i = 0; i < messageHandlers.length; i++) {
     messageHandlers[i](message);
   }
+}
+
+function postRILMessage() {
 }
 
 function loadScripts() {
@@ -114,11 +119,17 @@ function testSender(p) {
   /*
    * Test callback, used for making sure send creates packets correctly.
    */
-
   let test_parcel = [0,0,0,12,23,0,0,0,1,0,0,0,1,0,0,0];
   for(let i = 0; i < p.byteLength; ++i) {
     assert(test_parcel[i] === p[i], "Index " + i + " does not match");
   }
+}
+
+function testString(p) {
+  let test_parcel = [0,0,0,48,78,97,188,0,2,0,0,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0];
+  for(let i = 0; i < p.byteLength; ++i) {
+    assert(test_parcel[i] === p[i], "Index " + i + " does not match");
+  }  
 }
 
 function runTests() {
@@ -186,18 +197,56 @@ function runTests() {
    * Parcel Send Tests
    *********************************/
 
-  let old_send_parcel = Buf.sendParcelImpl;
-  Buf.sendParcelImpl = testSender;
-
+  let oldPostRILMessage = postRILMessage;
   {
     /*
      * Send a parcel, wire callback through tester function
      */
     print("===== Send parcel");
+
+    postRILMessage = testSender;
     Buf.newParcel(RIL_REQUEST_RADIO_POWER);
     Buf.writeUint32(1);
     Buf.sendParcel();
+    postRILMessage = oldPostRILMessage;
   }
+
+  /*********************************
+   * Type tests
+   *********************************/  
+  {
+    print("===== String writing");
+    postRILMessage = testString;
+    Buf.newParcel(B2G_TEST_PARCEL);
+    Buf.writeString("I am a test string");
+    Buf.sendParcel();
+    postRILMessage = oldPostRILMessage;
+  }
+  {
+    print("===== String reading");
+    let test_parcel = [0,0,0,48,1,0,0,0,78,97,188,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0];
+    RIL[B2G_TEST_PARCEL] = function (l) {
+      let str = Buf.readString();
+      print(str);
+      assert(str === "I am a test string", "String != 'I am a test string': " + str);
+    };
+    Buf.processIncoming(test_parcel);    
+  }
+  {
+    print("===== String list reading");    
+    let test_parcel = [0,0,0,132,1,0,0,0,78,97,188,0,3,0,0,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0];
+    RIL[B2G_TEST_PARCEL] = function (l) {
+      let str = Buf.readStringList();
+      assert(str.length === 3, "String list length should be 3, is " + str.length);
+      for(let i = 0; i < str.length; ++i) {
+        print(str[i]);
+        assert(str[i] === "I am a test string", "String != 'I am a test string': " + str[i]);
+      }
+    };
+    Buf.processIncoming(test_parcel);    
+  }
+
+
   print("--------- All tests passed ---------");
 };
 
