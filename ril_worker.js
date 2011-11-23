@@ -197,6 +197,7 @@ let Buf = {
    */
   writeToIncoming: function writeToIncoming(incoming) {
     if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
+      //TODO grow the RIL buffer here and memcpy the old one over
       dump("Uh-oh. " + incoming.length + " bytes is too much for my little " +
            "short term memory.");
     }
@@ -323,9 +324,9 @@ Buf.init();
 
 //TODO we're going to need a way to distinguish between events from the
 // RIL IPC thread and events from the UI thread...
-// this.addEventListener("message", function onMessage(event) {
-//   Buf.processIncoming(event.data);
-// });
+this.addEventListener("message", function onMessage(event) {
+  Buf.processIncoming(event.data);
+}, false);
 
 
 /**

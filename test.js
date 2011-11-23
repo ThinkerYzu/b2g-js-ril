@@ -22,6 +22,7 @@
  *
  * Contributor(s):
  *   Kyle Machulis <kyle@nonpolynomial.com> (Original Author)
+ *   Philipp von Weitershausen <philipp@weitershausen.de>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -37,13 +38,38 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-/*
+/**
  * Various tests for portions of the js RIL handler. Will probably be
  * turned into mochitests at some point, right now just running them
  * linearly because that does the job fine.
+ * 
+ * Run this on the command line as
+ * 
+ *   $ js test.js
+ *
  */
 
 "use strict";
+
+/**
+ * Fake postMessage API.
+ */
+let messageHandlers = [];
+if (!this.addEventListener && !this.postMessage) {
+  this.addEventListener = function addEventListener(type, func, bubble) {
+    messageHandlers.push(func);
+  };
+
+  this.postMessage = function postMessage(message) {
+    let event = {data: message};
+    for (let i = 0; i < messageHandlers.length; i++) {
+      messageHandlers[i](message);
+    }
+  };
+}
+
+load("ril_vars.js");
+load("ril_worker.js");
 
 /*
  * Quick assertion class since I'm not sure how to assert in JS
@@ -105,7 +131,7 @@ function runTests() {
     /*
      * Receive a packet length and data as a single buffer
      */
-    console.print("===== Receive whole");
+    print("===== Receive whole");
     Buf.processIncoming(test_parcel);
     //assert(ril.parcel_queue.length == 1, "ril.parcel_queue.length == 1");
     //testPacket(ril.parcel_queue[0]);
@@ -115,7 +141,7 @@ function runTests() {
     /*
      * Receive a packet length and data as different buffers
      */
-    console.print("===== Receive in chunks with full size and single data receive");
+    print("===== Receive in chunks with full size and single data receive");
     let ril = new RILManager();
     let parcel_parts = Array();
     parcel_parts[0] = ArrayBuffer(4);
@@ -135,7 +161,7 @@ function runTests() {
      * Receive a packet length and data as different buffers, with data
      * distributed through different buffers also.
      */
-    console.print("===== Receive in full size and chunked data ");
+    print("===== Receive in full size and chunked data ");
     let ril = new RILManager();
     let parcel_parts = Array();
     parcel_parts[0] = ArrayBuffer(4);
@@ -159,7 +185,7 @@ function runTests() {
      * Receive all data in weird sized chunks, making sure that both
      * packet length and data are chunked.
      */
-    console.print("=====  chunked size and chunked data");
+    print("=====  chunked size and chunked data");
     let ril = new RILManager();
     let parcel_parts = Array();
     parcel_parts[0] = ArrayBuffer(3);
@@ -187,10 +213,12 @@ function runTests() {
     /*
      * Send a parcel, wire callback through tester function
      */
-    console.print("===== Send parcel");
+    print("===== Send parcel");
     let ril = new RILManager();
     ril.setSendFunc(testSender);
     ril.send(RIL_REQUEST_RADIO_POWER, 1);  
   }
-  console.print("--------- All tests passed ---------");
+  print("--------- All tests passed ---------");
 };
+
+runTests();

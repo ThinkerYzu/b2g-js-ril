@@ -16,28 +16,25 @@ const BinaryOutputStream = Components.Constructor(
   "nsIBinaryOutputStream",
   "setOutputStream");
 
-function SocketListener(ril) {
-  this.ril = ril;
-}
+let global = this;
 
-SocketListener.prototype = {
+let SocketListener = {
+
+  connected: false,
 
   listen: function listen(host, port) {
-    this.stopped = false;
     this.socket = gTransportService.createTransport(null, 0, host, port, null);
     this.inputStream = this.socket.openInputStream(0, 0, 0);
     this.binaryInputStream = BinaryInputStream(this.inputStream);
     this.outputStream = this.socket.openOutputStream(0, 0, 0);
     this.binaryOutputStream = BinaryOutputStream(this.outputStream);
     this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
-    this.ril.setSendFunc(this.sendData.bind(this));
+    this.connected = true;
   },
 
-  ril: null,
-  
   stop: function stop() {
-    console.print("Stopping socket");
-    this.stopped = true;
+    dump("Stopping socket");
+    this.connected = false;
     this.socket.close(0);
   },
 
@@ -46,23 +43,33 @@ SocketListener.prototype = {
    */
   onInputStreamReady: function onInputStreamReady() {
     let length;
-    while (!this.stopped && (length = this.inputStream.available())) {
+    while (this.connected && (length = this.inputStream.available())) {
       this.processData(this.binaryInputStream.readByteArray(length));
     }
-    if(!this.stopped) {
+    if (this.connected) {
       this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
     }
   },
 
   processData: function processData(array_buffer) {
-    console.print([x for each (x in Uint8Array(array_buffer))]);
-    Buf.processIncoming(array_buffer);
+    dump(array_buffer);
+    global.postMessage(new Uint8Array(array_buffer));
   },
 
   sendData: function sendData(array_buffer) {
-    // let byte_array = Uint8Array(array_buffer);
-    // this.binaryOutputStream.writeByteArray([x for each (x in byte_array)], byte_array.length);
-    // this.binaryOutputStream.flush();
+    let byte_array = Uint8Array(array_buffer);
+    //XXX TODO is the Array.slice() necessary? Maybe writeByteArray()
+    // will just eat a TypedArray...
+    this.binaryOutputStream.writeByteArray(Array.slice(byte_array),
+                                           byte_array.length);
+    this.binaryOutputStream.flush();
   }
 
 };
+
+/**
+ * The RIL Worker has this global function to talk to the RIL IPC thread.
+ */
+function postRILMessage(message) {
+  SocketListener.sendData(message);
+}

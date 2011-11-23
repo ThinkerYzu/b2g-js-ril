@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body onload="onload();"
+      onunload="onunload();">
+<div>
+  Host/Port:
+  <input id="host" type="text" value="localhost">
+  <input id="port" type="text" value="6200">
+  <button id="connect" onclick="connect(); return false;">Connect</button>
+</div>
+
+<p>Use the Web Console (Ctrl+Shift+K) to poke at the <code>RIL</code> object
+and see inspect debugging output</p>
+
+<script type="application/javascript;version=1.8" src="socket.js"></script>
+<script type="application/javascript;version=1.8" src="ril_vars.js"></script>
+<script type="application/javascript;version=1.8" src="ril_worker.js"></script>
+<script type="application/javascript;version=1.8">
+
+function onload() {
+}
+
+let listener = new SocketListener();
+function connect() {
+  if (listener.connected) {
+    listener.stop();
+    document.getElementById("host").disabled = false;
+    document.getElementById("port").disabled = false;
+    document.getElementById("connect").textContent = "Connect";
+  } else {
+    let host = document.getElementById("host").value;
+    let port = document.getElementById("port").value;
+    //TODO handle connection errors... I think this throws?
+    listener.listen(host, port);
+
+    document.getElementById("host").disabled = true;
+    document.getElementById("port").disabled = true;
+    document.getElementById("connect").textContent = "Disconnect";
+  }
+}
+
+function unonload() {
+  if (listener.connected) {
+    listener.stop();
+  }
+}
+</script>
+
+</body>
+</html>
