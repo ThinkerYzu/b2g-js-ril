@@ -3,8 +3,12 @@
 
 "use strict";
 
+const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+
+Cu.import("resource://gre/modules/Services.jsm");
+
 const gTransportService = Cc["@mozilla.org/network/socket-transport-service;1"]
-  .getService(Ci.nsISocketTransportService);
+                            .getService(Ci.nsISocketTransportService);
 
 const BinaryInputStream = Components.Constructor(
   "@mozilla.org/binaryinputstream;1",
@@ -76,4 +80,11 @@ function postRILMessage(message) {
 
 function debug(msg) {
   console.log(msg);
+}
+
+function dump(msg) {
+  console.log(msg);
+}
+
+function loadScripts() {
 }

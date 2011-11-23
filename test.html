@@ -2,8 +2,7 @@
 <html>
 <head>
 </head>
-<body onload="onload();"
-      onunload="onunload();">
+<body onunload="cleanup();">
 <div>
   Host/Port:
   <input id="host" type="text" value="localhost">
@@ -19,13 +18,9 @@ and see inspect debugging output</p>
 <script type="application/javascript;version=1.8" src="ril_worker.js"></script>
 <script type="application/javascript;version=1.8">
 
-function onload() {
-}
-
-let listener = new SocketListener();
 function connect() {
-  if (listener.connected) {
-    listener.stop();
+  if (SocketListener.connected) {
+    SocketListener.stop();
     document.getElementById("host").disabled = false;
     document.getElementById("port").disabled = false;
     document.getElementById("connect").textContent = "Connect";
@@ -33,7 +28,7 @@ function connect() {
     let host = document.getElementById("host").value;
     let port = document.getElementById("port").value;
     //TODO handle connection errors... I think this throws?
-    listener.listen(host, port);
+    SocketListener.listen(host, port);
 
     document.getElementById("host").disabled = true;
     document.getElementById("port").disabled = true;
@@ -41,11 +36,12 @@ function connect() {
   }
 }
 
-function unonload() {
-  if (listener.connected) {
-    listener.stop();
+function cleanup() {
+  if (SocketListener.connected) {
+    SocketListener.stop();
   }
 }
+
 </script>
 
 </body>
