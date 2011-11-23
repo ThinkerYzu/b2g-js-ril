@@ -44,6 +44,8 @@
 
 "use strict";
 
+loadScripts("ril_vars.js");
+
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
 const UINT32_SIZE = 4;
@@ -51,6 +53,11 @@ const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 const RESPONSE_TYPE_SOLICITED = 0;
 const RESPONSE_TYPE_UNSOLICITED = 1;
+
+if (!this.debug) {
+  // Debugging stub that goes nowhere.
+  this.debug = function debug() {};
+}
 
 /**
  * This object contains helpers buffering incoming data & deconstructing it
@@ -122,7 +129,7 @@ let Buf = {
   },
 
   readUint32: function readUint32() {
-    dump("Reading at " + this.currentByte);
+    debug("Reading at " + this.currentByte);
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
   },
@@ -198,8 +205,8 @@ let Buf = {
   writeToIncoming: function writeToIncoming(incoming) {
     if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
       //TODO grow the RIL buffer here and memcpy the old one over
-      dump("Uh-oh. " + incoming.length + " bytes is too much for my little " +
-           "short term memory.");
+      debug("Uh-oh. " + incoming.length + " bytes is too much for my little " +
+            "short term memory.");
     }
 
     // We can let the typed arrays do the copying if the incoming data won't
@@ -223,7 +230,7 @@ let Buf = {
     this.writeToIncoming(incoming);
     this.readIncoming += incoming.length;
     while (true) {
-      dump("Read Incoming: " + this.readIncoming);
+      debug("Read Incoming: " + this.readIncoming);
       if (!this.currentParcelSize) {
         // We're expecting a new parcel.
         if (this.readIncoming < PARCEL_SIZE_SIZE) {
@@ -250,8 +257,8 @@ let Buf = {
       let expectedIndex = (before + this.currentParcelSize) %
                           this.INCOMING_BUFFER_LENGTH;
       if (this.incomingIndex != expectedIndex) {
-        dump("Parcel handling code did not consume the right amount of data! " +
-             "Expected: " + expectedIndex + " Actual: " + this.incomingIndex);
+        debug("Parcel handling code did not consume the right amount of data! " +
+              "Expected: " + expectedIndex + " Actual: " + this.incomingIndex);
         this.incomingIndex = expectedIndex;
       }
       this.currentByte = 0;
@@ -277,7 +284,7 @@ let Buf = {
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
       request_type = this.readUint32();
     } else {
-      dump("Unknown response type: " + response_type);
+      debug("Unknown response type: " + response_type);
       return;
     }
 

@@ -45,30 +45,37 @@
  * 
  * Run this on the command line as
  * 
- *   $ js test.js
+ *   $ path/to/js test.js
  *
  */
 
 "use strict";
 
 /**
- * Fake postMessage API.
+ * Fake postMessage and worker APIs.
  */
 let messageHandlers = [];
-if (!this.addEventListener && !this.postMessage) {
-  this.addEventListener = function addEventListener(type, func, bubble) {
-    messageHandlers.push(func);
-  };
-
-  this.postMessage = function postMessage(message) {
-    let event = {data: message};
-    for (let i = 0; i < messageHandlers.length; i++) {
-      messageHandlers[i](message);
-    }
-  };
+function addEventListener(type, func, bubble) {
+  messageHandlers.push(func);
 }
 
-load("ril_vars.js");
+function postMessage(message) {
+  let event = {data: message};
+  for (let i = 0; i < messageHandlers.length; i++) {
+    messageHandlers[i](message);
+  }
+}
+
+function loadScripts() {
+  Array.map(arguments, function loadScript(script) {
+    load(script);
+  });
+}
+
+function debug(msg) {
+  print(msg);
+}
+
 load("ril_worker.js");
 
 /*
@@ -137,6 +144,7 @@ function runTests() {
     //testPacket(ril.parcel_queue[0]);
   }
 
+return;//XXX
   {
     /*
      * Receive a packet length and data as different buffers

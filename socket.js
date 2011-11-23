@@ -73,3 +73,7 @@ let SocketListener = {
 function postRILMessage(message) {
   SocketListener.sendData(message);
 }
+
+function debug(msg) {
+  console.log(msg);
+}
