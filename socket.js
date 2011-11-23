@@ -26,7 +26,8 @@ let SocketListener = {
 
   connected: false,
 
-  listen: function listen(host, port) {
+  listen: function listen(host, port, errorCallback) {
+    this.errorCallback = errorCallback;
     this.socket = gTransportService.createTransport(null, 0, host, port, null);
     this.inputStream = this.socket.openInputStream(0, 0, 0);
     this.binaryInputStream = BinaryInputStream(this.inputStream);
@@ -46,13 +47,25 @@ let SocketListener = {
    * nsIInputStreamCallback
    */
   onInputStreamReady: function onInputStreamReady() {
-    let length;
-    while (this.connected && (length = this.inputStream.available())) {
-      this.processData(this.binaryInputStream.readByteArray(length));
+    if (!this.connected) {
+      return;
     }
-    if (this.connected) {
-      this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
+    while (true) {
+      let data;
+      try {
+        let length = this.inputStream.available();
+        if (!length) {
+          break;
+        }
+        data = this.binaryInputStream.readByteArray(length);
+      } catch(ex) {
+        this.stop();
+        this.errorCallback(ex);
+        return;
+      }
+      this.processData(data);
     }
+    this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
   },
 
   processData: function processData(array_buffer) {

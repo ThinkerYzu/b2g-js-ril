@@ -10,6 +10,8 @@
   <button id="connect" onclick="connect(); return false;">Connect</button>
 </div>
 
+<p id="status"></p>
+
 <p>Use the Web Console (Ctrl+Shift+K) to poke at the <code>RIL</code> object
 and see inspect debugging output</p>
 
@@ -21,19 +23,19 @@ and see inspect debugging output</p>
 function connect() {
   if (SocketListener.connected) {
     SocketListener.stop();
-    document.getElementById("host").disabled = false;
-    document.getElementById("port").disabled = false;
     document.getElementById("connect").textContent = "Connect";
   } else {
     let host = document.getElementById("host").value;
     let port = document.getElementById("port").value;
-    //TODO handle connection errors... I think this throws?
-    SocketListener.listen(host, port);
-
-    document.getElementById("host").disabled = true;
-    document.getElementById("port").disabled = true;
+    SocketListener.listen(host, port, onConnectionError);
+    document.getElementById("status").textContent = "";
     document.getElementById("connect").textContent = "Disconnect";
   }
+}
+
+function onConnectionError(error) {
+  document.getElementById("status").textContent = "Connection failed: " + error.message + " " + error.result;
+  document.getElementById("connect").textContent = "Connect";
 }
 
 function cleanup() {
