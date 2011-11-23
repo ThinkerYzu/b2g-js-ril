@@ -237,6 +237,7 @@ function runTests() {
     let test_parcel = [0,0,0,132,1,0,0,0,78,97,188,0,3,0,0,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0,18,0,0,0,73,0,32,0,97,0,109,0,32,0,97,0,32,0,116,0,101,0,115,0,116,0,32,0,115,0,116,0,114,0,105,0,110,0,103,0];
     RIL[B2G_TEST_PARCEL] = function (l) {
       let str = Buf.readStringList();
+      assert(str.length === 3, "String list length should be 3, is " + str.length);
       for(let i = 0; i < str.length; ++i) {
         print(str[i]);
         assert(str[i] === "I am a test string", "String != 'I am a test string': " + str[i]);
