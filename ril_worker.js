@@ -37,9 +37,17 @@
  * ***** END LICENSE BLOCK ***** */
 
 /**
- * This file implements the RIL worker thread. It communicates with the main
- * thread to provide a high-level API to the phone's RIL stack, and with the
- * RIL IPC thread to communicate with the RIL device itself.
+ * This file implements the RIL worker thread. It communicates with
+ * the main thread to provide a high-level API to the phone's RIL
+ * stack, and with the RIL IPC thread to communicate with the RIL
+ * device itself. These communication channels use message events as
+ * known from Web Workers:
+ *
+ * - postMessage()/"message" events for main thread communication
+ *
+ * - postRILMessage()/"RILMessageEvent" events for RIL IPC thread
+ *   communication.
+ *
  */
 
 "use strict";
@@ -329,11 +337,9 @@ let Buf = {
 
 Buf.init();
 
-//TODO we're going to need a way to distinguish between events from the
-// RIL IPC thread and events from the UI thread...
-this.addEventListener("message", function onMessage(event) {
+addEventListener("RILMessageEvent", function onRILMessageEvent(event) {
   Buf.processIncoming(event.data);
-}, false);
+});
 
 
 /**
@@ -397,6 +403,14 @@ let RIL = {
   },
 
   //TODO add moar stuff here.
+
+
+  /**
+   * Handle incoming messages from the main UI thread.
+   */
+  handleMessage: function handleMessage(message) {
+    //TODO
+  },
 
   /**
    * Handle incoming requests from the RIL. We find the method that
@@ -566,3 +580,7 @@ RIL[RIL_UNSOL_OEM_HOOK_RAW] = null;
 RIL[RIL_UNSOL_RINGBACK_TONE] = null;
 RIL[RIL_UNSOL_RESEND_INCALL_MUTE] = null;
 
+
+onmessage = function onmessage(event) {
+  RIL.handleMessage(event.data);
+};

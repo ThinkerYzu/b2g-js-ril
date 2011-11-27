@@ -40,7 +40,7 @@
 
 /**
  * Various tests for portions of the js RIL handler. Will probably be
- * turned into mochitests at some point, right now just running them
+ * turned into xpcshell-tests at some point, right now just running them
  * linearly because that does the job fine.
  *
  * Run this on the command line as
@@ -54,18 +54,14 @@
 const B2G_TEST_PARCEL = 12345678;
 
 /**
- * Fake postMessage and worker APIs.
+ * Fake worker APIs.
  */
-let messageHandlers = [];
-function addEventListener(type, func, bubble) {
-  messageHandlers.push(func);
-}
 
-function postMessage(message) {
-  let event = {data: message};
-  for (let i = 0; i < messageHandlers.length; i++) {
-    messageHandlers[i](message);
-  }
+let _onRILMessageEvent;
+function addEventListener(type, cb) {
+  assert(type == "RILMessageEvent",
+         "Registering handler for unknown event type: " + type);
+  _onRILMessageEvent = cb;
 }
 
 function postRILMessage() {
@@ -80,6 +76,22 @@ function loadScripts() {
 function debug(msg) {
   print(msg);
 }
+
+/**
+ * Fake APIs for sending messages to the worker.
+ */
+let worker = {
+  postRILMessage: function postRILMessage(message) {
+    let event = {type: "RILMessageEvent",
+                 data: message};
+    _onRILMessageEvent(event);
+  },
+  postMessage: function postMessage(message) {
+    let event = {type: "message",
+                 data: message};
+    onmessage(event);
+  }
+};
 
 load("ril_worker.js");
 
