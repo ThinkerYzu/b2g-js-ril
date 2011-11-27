@@ -305,9 +305,11 @@ let Buf = {
     // We're going to leave room for the parcel size at the beginning.
     this.outgoingIndex = PARCEL_SIZE_SIZE;
     this.writeUint32(type);
-    this.writeUint32(this.token);
-    this.tokenRequestMap[this.token] = type;
+    let token = this.token;
+    this.writeUint32(token);
+    this.tokenRequestMap[token] = type;
     this.token += 1;
+    return token;
   },
 
   /**
@@ -365,13 +367,25 @@ let RIL = {
    */
 
   dialPhone: function dialPhone(address, clirMode, uusInfo) {
-    Buf.newParcel(RIL_REQUEST_DIAL);
+    let token = Buf.newParcel(RIL_REQUEST_DIAL);
     Buf.writeString(address);
     Buf.writeUint32(clirMode || 0);
     Buf.writeUint32(uusInfo || 0);
 	// TODO Why do we need this extra 0? It was put it in to make this
 	// match the format of the binary message.
 	Buf.writeUint32(0);
+    Buf.sendParcel();
+  },
+
+  sendSMS: function sendSMS(smscPDU, pdu) {
+    let token = Buf.newParcel(RIL_REQUEST_SEND_SMS);
+    //TODO we want to map token to the input values so that on the
+    // response from the RIL device we know which SMS request was successful
+    // or not. Maybe we should build that functionality into newParcel() and
+    // handle it within tokenRequestMap[].
+    Buf.writeUint32(2);
+    Buf.writeString(smscPDU);
+    Buf.writeString(pdu);
     Buf.sendParcel();
   },
 
@@ -386,7 +400,7 @@ let RIL = {
 	  debug("Turning radio on");
       Buf.newParcel(RIL_REQUEST_RADIO_POWER);
       Buf.writeUint32(1);
-      Buf.writeUint32(1);//on ? 1 : 0);
+      Buf.writeUint32(1); //TODO this should be something like "on ? 1 : 0"
       Buf.sendParcel();
     } else {
       if (this.IMEI == null) {
@@ -463,7 +477,12 @@ RIL[RIL_REQUEST_OPERATOR] = function RIL_REQUEST_OPERATOR(length) {
 };
 RIL[RIL_REQUEST_RADIO_POWER] = null;
 RIL[RIL_REQUEST_DTMF] = null;
-RIL[RIL_REQUEST_SEND_SMS] = null;
+RIL[RIL_REQUEST_SEND_SMS] = function RIL_REQUEST_SEND_SMS() {
+  let messageRef = Buf.readUint32();
+  let ackPDU = p.readString();
+  let errorCode = p.readUint32();
+  //TODO send an event to the mainthread
+};
 RIL[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = null;
 RIL[RIL_REQUEST_SETUP_DATA_CALL] = null;
 RIL[RIL_REQUEST_SIM_IO] = null;
