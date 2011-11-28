@@ -415,7 +415,7 @@ let RIL = {
 
   radioStateChanged: function(radioState) {
     if (radioState == RADIOSTATE_OFF) {
-	  debug("Turning radio on");
+      debug("Turning radio on");
       Buf.newParcel(RIL_REQUEST_RADIO_POWER);
       Buf.writeUint32(1);
       Buf.writeUint32(1); //TODO this should be something like "on ? 1 : 0"
