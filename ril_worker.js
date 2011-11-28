@@ -366,6 +366,16 @@ let RIL = {
    * Outgoing requests to the RIL.
    */
 
+  /**
+   * Dial the phone.
+   *
+   * @param address
+   *        String containing the address (number) to dial.
+   * @param clirMode
+   *        Integer doing something XXX TODO
+   * @param uusInfo
+   *        Integer doing something XXX TODO
+   */
   dialPhone: function dialPhone(address, clirMode, uusInfo) {
     let token = Buf.newParcel(RIL_REQUEST_DIAL);
     Buf.writeString(address);
@@ -377,6 +387,14 @@ let RIL = {
     Buf.sendParcel();
   },
 
+  /**
+   * Send an SMS.
+   *
+   * @param smscPDU
+   *        String containing the SMSC PDU in hex format.
+   * @param pdu
+   *        String containing the PDU in hex format.
+   */
   sendSMS: function sendSMS(smscPDU, pdu) {
     let token = Buf.newParcel(RIL_REQUEST_SEND_SMS);
     //TODO we want to map token to the input values so that on the
