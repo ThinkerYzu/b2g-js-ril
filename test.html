@@ -2,7 +2,7 @@
 <html>
 <head>
 </head>
-<body onunload="cleanup();">
+<body onload="init();" onunload="cleanup();">
 <div>
   Host/Port:
   <input id="host" type="text" value="localhost">
@@ -12,14 +12,22 @@
 
 <p id="status"></p>
 
-<p>Use the Web Console (Ctrl+Shift+K) to poke at the <code>RIL</code> and
-<code>Phone</code> objects and see inspect debugging output</p>
+<p>Use the Web Console above to poke at the <code>RIL</code> and
+<code>Phone</code> objects and see the debugging output.</p>
 <!-- TODO we have chrome privs, so can't we juts do that programmatically? -->
 
 <script type="application/javascript;version=1.8" src="socket.js"></script>
 <script type="application/javascript;version=1.8" src="ril_vars.js"></script>
 <script type="application/javascript;version=1.8" src="ril_worker.js"></script>
 <script type="application/javascript;version=1.8">
+
+function init() {
+  Cu.import("resource://gre/modules/Services.jsm");
+  let chromeWin = Services.wm.getMostRecentWindow("navigator:browser");
+  if (!chromeWin.HUDConsoleUI.getOpenHUD()) {
+    chromeWin.HUDConsoleUI.toggleHUD();
+  }
+}
 
 function connect() {
   if (SocketListener.connected) {
