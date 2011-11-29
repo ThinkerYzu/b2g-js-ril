@@ -129,7 +129,7 @@ let Buf = {
    */
 
   readUint8: function readUint8() {
-    debug("Reading at " + this.incomingReadIndex);
+    //debug("Reading at " + this.incomingReadIndex);
     let value = this.incomingBytes[this.incomingReadIndex];
     this.incomingReadIndex = (this.incomingReadIndex + 1) %
                              this.INCOMING_BUFFER_LENGTH;
@@ -433,6 +433,10 @@ let RIL = {
     Buf.writeUint32(1);
     Buf.writeUint32(on ? 1: 0);
     Buf.sendParcel();
+  },
+
+  getSignalStrength: function getSignalStrength() {
+    Buf.simpleRequest(RIL_REQUEST_SIGNAL_STRENGTH);
   },
 
   /**
@@ -830,7 +834,7 @@ let Phone = {
   },
 
   onGPRSRegistrationState: function onGPRSRegistrationState(newState) {
-    this.gprsRegistrationState = state;
+    this.gprsRegistrationState = newState;
   },
 
   onOperator: function onOperator(operator) {
