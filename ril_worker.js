@@ -278,12 +278,16 @@ let Buf = {
 
       // Alright, we have enough data to process at least one whole parcel.
       // Let's do that.
-      this.processParcel();
+      try {
+        this.processParcel();
+      } catch (ex) {
+        debug("Parcel handling threw " + ex);
+      }
 
       // Ensure that the whole parcel was consumed.
       if (this.incomingIndex != this.currentByte) {
         debug("Parcel handling code did not consume the right amount of data! " +
-              "Expected: " + this.currentByte + " Actual: " + this.incomingIndex);
+              "Expected: " + this.incomingIndex + " Actual: " + this.currentByte);
       }
       this.currentByte = 0;
       this.incomingIndex = 0;
@@ -739,10 +743,10 @@ let Phone = {
     }
     //TODO RUIM, NV, GSM/CDMA
 
-    let wasOn = this.radioState != RADIO_OFF &&
-                this.radioState != RADIO_UNAVAILABLE;
-    let isOn = newState != RADIO_OFF &&
-               newState != RADIO_UNAVAILABLE;
+    let wasOn = this.radioState != RADIOSTATE_OFF &&
+                this.radioState != RADIOSTATE_UNAVAILABLE;
+    let isOn = newState != RADIOSTATE_OFF &&
+               newState != RADIOSTATE_UNAVAILABLE;
     if (!wasOn && isOn) {
       //TODO
     }
@@ -761,6 +765,7 @@ let Phone = {
   onSIMStatus: function onSIMStatus(simStatus) {
     debug("SIM card state is " + simStatus.cardState);
     debug("Universal PIN state is " + simStatus.universalPINState);
+    debug(simStatus);
     //TODO
   },
 
