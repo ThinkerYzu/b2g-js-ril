@@ -304,9 +304,11 @@ let Buf = {
     if (response_type == RESPONSE_TYPE_SOLICITED) {
       let token = this.readUint32();
       request_type = this.tokenRequestMap[token];
+      debug("Solicited response for request type " + request_type);
       delete this.tokenRequestMap[token];
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
       request_type = this.readUint32();
+      debug("Unsolicited response for request type " + request_type);
     } else {
       debug("Unknown response type: " + response_type);
       return;
@@ -365,6 +367,27 @@ addEventListener("RILMessageEvent", function onRILMessageEvent(event) {
  * between method calls and RIL parcels. Somebody's gotta do the job...
  */
 let RIL = {
+
+  /**
+   * Retrieve the SIM card's status.
+   * 
+   * Response will call Phone.onSIMStatus().
+   */
+  getSIMStatus: function getSIMStatus() {
+    Buf.simpleRequest(RIL_REQUEST_GET_SIM_STATUS);
+  },
+
+  /**
+   * Enter a PIN to unlock the SIM.
+   * 
+   * Response will call Phone.onEnterSIMPIN().
+   */
+  enterSIMPIN: function enterSIMPIN(pin) {
+    Buf.newParcel(RIL_REQUEST_ENTER_SIM_PIN);
+    Buf.writeUint32(1);
+    Buf.writeString(pin);
+    Buf.sendParcel();
+  },
 
   /**
    * Request the phone's radio power to be switched on or off.
@@ -427,7 +450,6 @@ let RIL = {
    */
 
   handleParcel: function handleParcel(request_type, length) {
-    debug("Received parcel for request type " + request_type);
     let method = this[request_type];
     if (typeof method == "function") {
       debug("Handling parcel as " + method.name);
@@ -436,8 +458,38 @@ let RIL = {
   }
 };
 
-RIL[RIL_REQUEST_GET_SIM_STATUS] = null,
-RIL[RIL_REQUEST_ENTER_SIM_PIN] = null;
+RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
+  let simStatus = {
+    cardState:                   Buf.readUint32(),
+    universalPINState:           Buf.readUint32(),
+    gsmUmtsSubscriptionAppIndex: Buf.readUint32(),
+    setCdmaSubscriptionAppIndex: Buf.readUint32(),
+    apps:                        []
+  };
+
+  let apps_length = Buf.readUint32();
+  if (apps_length > CARD_MAX_APPS) {
+    apps_length = CARD_MAX_APPS;
+  }
+
+  for (let i = 0 ; i < apps_length ; i++) {
+    simStatus.apps.push({
+      app_type:       Buf.readUint32(),
+      app_state:      Buf.readUint32(),
+      perso_substate: Buf.readUint32(),
+      aid:            Buf.readString(),
+      app_label:      Buf.readString(),
+      pin1_replaced:  Buf.readUint32(),
+      pin1:           Buf.readUint32(),
+      pin2:           Buf.readUint32()
+    });
+  }
+  Phone.onSIMStatus(simStatus);
+};
+RIL[RIL_REQUEST_ENTER_SIM_PIN] = function RIL_REQUEST_ENTER_SIM_PIN() {
+  let response = Buf.readUint32List();
+  Phone.onEnterSIMPIN(response);
+};
 RIL[RIL_REQUEST_ENTER_SIM_PUK] = null;
 RIL[RIL_REQUEST_ENTER_SIM_PIN2] = null;
 RIL[RIL_REQUEST_ENTER_SIM_PUK2] = null;
@@ -702,8 +754,19 @@ let Phone = {
   },
 
   onNetworkStateChanged: function onNetworkStateChanged() {
-    debug("Network state changed.");
+    debug("Network state changed, re-requesting phone state.");
     this.requestPhoneState();
+  },
+
+  onSIMStatus: function onSIMStatus(simStatus) {
+    debug("SIM card state is " + simStatus.cardState);
+    debug("Universal PIN state is " + simStatus.universalPINState);
+    //TODO
+  },
+
+  onEnterSIMPIN: function onEnterSIMPIN(response) {
+    debug("RIL_REQUEST_ENTER_SIM_PIN returned " + response);
+    //TODO
   },
 
   onNetworkSelectionMode: function onNetworkSelectionMode(mode) {
