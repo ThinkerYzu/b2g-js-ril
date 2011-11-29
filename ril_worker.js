@@ -652,7 +652,9 @@ RIL[RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM] = null;
 RIL[RIL_UNSOL_ON_USSD] = null;
 RIL[RIL_UNSOL_ON_USSD_REQUEST] = null;
 RIL[RIL_UNSOL_NITZ_TIME_RECEIVED] = null;
-RIL[RIL_UNSOL_SIGNAL_STRENGTH] = null;
+RIL[RIL_UNSOL_SIGNAL_STRENGTH] = function RIL_UNSOL_SIGNAL_STRENGTH() {
+  this[RIL_REQUEST_SIGNAL_STRENGTH]();
+};
 RIL[RIL_UNSOL_DATA_CALL_LIST_CHANGED] = null;
 RIL[RIL_UNSOL_SUPP_SVC_NOTIFICATION] = null;
 RIL[RIL_UNSOL_STK_SESSION_END] = null;
@@ -813,6 +815,7 @@ let Phone = {
   },
 
   onSignalStrength: function onSignalStrength(strength) {
+    debug("Signal strength " + strength);
     //TODO
   },
 
