@@ -87,8 +87,8 @@ if (!this.debug) {
 let Buf = {
 
   //TODO review these values
-  INCOMING_BUFFER_LENGTH: 2048,
-  OUTGOING_BUFFER_LENGTH: 2048,
+  INCOMING_BUFFER_LENGTH: 4096,
+  OUTGOING_BUFFER_LENGTH: 4096,
 
   init: function init() {
     this.incomingBuffer = new ArrayBuffer(this.INCOMING_BUFFER_LENGTH);
@@ -232,9 +232,14 @@ let Buf = {
    */
   writeToIncoming: function writeToIncoming(incoming) {
     if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
-      //TODO grow the RIL buffer here and memcpy the old one over
-      debug("Uh-oh. " + incoming.length + " bytes is too much for my little " +
-            "short term memory.");
+      debug("Current buffer of " + this.INCOMING_BUFFER_LENGTH +
+            " can't handle incoming " + incoming.length + " bytes ");
+      let oldBytes = this.incomingBytes;
+      this.INCOMING_BUFFER_LENGTH *= 2;
+      this.incomingBuffer = new ArrayBuffer(this.INCOMING_BUFFER_LENGTH);
+      this.incomingBytes = new Uint8Array(this.incomingBuffer);
+      this.incomingBytes.set(oldBytes);
+      debug("New incoming buffer size is " + this.INCOMING_BUFFER_LENGTH);
     }
 
     // We can let the typed arrays do the copying if the incoming data won't
@@ -308,7 +313,8 @@ let Buf = {
     if (response_type == RESPONSE_TYPE_SOLICITED) {
       let token = this.readUint32();
       request_type = this.tokenRequestMap[token];
-      debug("Solicited response for request type " + request_type);
+      debug("Solicited response for request type " + request_type +
+            ", token " + token);
       delete this.tokenRequestMap[token];
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
       request_type = this.readUint32();
