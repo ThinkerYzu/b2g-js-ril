@@ -100,8 +100,8 @@ let Buf = {
     // Track where incoming data is read from and written to.
     //XXX I think we could fold this into one index just like we do it
     // with outgoingIndex.
-    this.incomingIndex = 0;
-    this.currentByte = 0;
+    this.incomingWriteIndex = 0;
+    this.incomingReadIndex = 0;
 
     // Leave room for the parcel size for outgoing parcels.
     this.outgoingIndex = PARCEL_SIZE_SIZE;
@@ -129,12 +129,10 @@ let Buf = {
    */
 
   readUint8: function readUint8() {
-    debug("Reading at " + this.currentByte);
-    let value = this.incomingBytes[this.currentByte];
-    this.currentByte += 1;
-    if (this.currentByte > this.INCOMING_BUFFER_LENGTH) {
-      throw "Read off end of parcel";
-    }
+    debug("Reading at " + this.incomingReadIndex);
+    let value = this.incomingBytes[this.incomingReadIndex];
+    this.incomingReadIndex = (this.incomingReadIndex + 1) %
+                             this.INCOMING_BUFFER_LENGTH;
     return value;
   },
 
@@ -228,31 +226,54 @@ let Buf = {
    */
 
   /**
-   * Write data to the circular buffer.
+   * Write incoming data to the circular buffer.
    */
   writeToIncoming: function writeToIncoming(incoming) {
+    // We don't have to worry about the head catching the tail since
+    // we process any backlog in parcels immediately, before writing
+    // new data to the buffer. So the only edge case we need to handle
+    // is when the incoming data is larger than the buffer size.
     if (incoming.length > this.INCOMING_BUFFER_LENGTH) {
       debug("Current buffer of " + this.INCOMING_BUFFER_LENGTH +
             " can't handle incoming " + incoming.length + " bytes ");
       let oldBytes = this.incomingBytes;
-      this.INCOMING_BUFFER_LENGTH *= 2;
+      while (this.INCOMING_BUFFER_LENGTH < incoming.length) {
+        this.INCOMING_BUFFER_LENGTH *= 2;
+      }
       this.incomingBuffer = new ArrayBuffer(this.INCOMING_BUFFER_LENGTH);
       this.incomingBytes = new Uint8Array(this.incomingBuffer);
-      this.incomingBytes.set(oldBytes);
+      if (this.incomingReadIndex <= this.incomingWriteIndex) {
+        // Read and write index are in natural order, so we can just copy
+        // the old buffer over to the bigger one without having to worry
+        // about the indexes.
+        this.incomingBytes.set(oldBytes, 0);
+      } else {
+        // The write index has wrapped around but the read index hasn't yet.
+        // Write whatever the read index has left to read until it would
+        // circle around to the beginning of the new buffer, and the rest
+        // behind that.
+        let head = oldBytes.subarray(this.incomingReadIndex);
+        let tail = oldBytes.subarray(0, this.incomingReadIndex);
+        this.incomingBytes.set(head, 0);
+        this.incomingBytes.set(tail, head.length);
+        this.incomingReadIndex = 0;
+        this.incomingWriteIndex += head.length;
+      }
       debug("New incoming buffer size is " + this.INCOMING_BUFFER_LENGTH);
     }
 
     // We can let the typed arrays do the copying if the incoming data won't
     // wrap around the edges of the circular buffer.
-    if (this.incomingIndex + incoming.length < this.INCOMING_BUFFER_LENGTH) {
-      this.incomingBytes.set(incoming, this.incomingIndex);
-      this.incomingIndex += incoming.length;
-      return;
-    }
-
-    for (let i = 0; i < incoming.length; i++) {
-      let index = (this.incomingIndex + i) % INCOMING_BUFFER_LENGTH;
-      this.incomingBytes[index] = incoming[i];
+    let remaining = this.INCOMING_BUFFER_LENGTH - this.incomingWriteIndex - 1;
+    if (remaining >= incoming.length) {
+      this.incomingBytes.set(incoming, this.incomingWriteIndex);
+      this.incomingWriteIndex += incoming.length;
+    } else {
+      // The incoming data would wrap around it.
+      let head = incoming.subarray(0, remaining);
+      let tail = incoming.subarray(remaining);
+      this.incomingBytes.set(head, this.incomingWriteIndex);
+      this.incomingBytes.set(tail, 0);
     }
   },
 
@@ -283,6 +304,8 @@ let Buf = {
 
       // Alright, we have enough data to process at least one whole parcel.
       // Let's do that.
+      let expectedAfterIndex = (this.incomingReadIndex + this.currentParcelSize)
+                               % this.INCOMING_BUFFER_LENGTH;
       try {
         this.processParcel();
       } catch (ex) {
@@ -290,12 +313,12 @@ let Buf = {
       }
 
       // Ensure that the whole parcel was consumed.
-      if (this.incomingIndex != this.currentByte) {
-        debug("Parcel handling code did not consume the right amount of data! " +
-              "Expected: " + this.incomingIndex + " Actual: " + this.currentByte);
+      if (this.incomingReadIndex != expectedAfterIndex) {
+        debug("Parcel handling code did not consume the right amount of data!" +
+              " Expected: " + expectedAfterIndex +
+              " Actual: " + this.incomingReadIndex);
+        this.incomingReadIndex = expectedAfterIndex;
       }
-      this.currentByte = 0;
-      this.incomingIndex = 0;
       this.readIncoming -= this.currentParcelSize;
       this.currentParcelSize = 0;
     }
