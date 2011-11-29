@@ -57,6 +57,8 @@ const B2G_TEST_PARCEL = 12345678;
  * Fake worker APIs.
  */
 
+let onmessage;
+
 let _onRILMessageEvent;
 function addEventListener(type, cb) {
   assert(type == "RILMessageEvent",
