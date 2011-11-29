@@ -48,6 +48,11 @@
  * - postRILMessage()/"RILMessageEvent" events for RIL IPC thread
  *   communication.
  *
+ * The three objects in this file represent individual parts of this
+ * communication chain:
+ * 
+ * - RILMessageEvent -> Buf -> RIL -> Phone -> postMessage()
+ * - "message" event -> Phone -> RIL -> Buf -> postRILMessage()
  */
 
 "use strict";
@@ -124,6 +129,7 @@ let Buf = {
    */
 
   readUint8: function readUint8() {
+    debug("Reading at " + this.currentByte);
     let value = this.incomingBytes[this.currentByte];
     this.currentByte += 1;
     if (this.currentByte > this.INCOMING_BUFFER_LENGTH) {
@@ -137,9 +143,17 @@ let Buf = {
   },
 
   readUint32: function readUint32() {
-    debug("Reading at " + this.currentByte);
     return this.readUint8()       | this.readUint8() <<  8 |
            this.readUint8() << 16 | this.readUint8() << 24;
+  },
+
+  readUint32List: function readUint32List() {
+    let length = this.readUint32();
+    let ints = [];
+    for (let i = 0; i < length; i++) {
+      ints.push(this.readUint32());
+    }
+    return ints;
   },
 
   readString: function readString() {
@@ -345,26 +359,25 @@ addEventListener("RILMessageEvent", function onRILMessageEvent(event) {
 
 
 /**
- * High level object representing the phone's RIL. This is where parcels are
- * sent and received from.
+ * Provide a high-level API representing the RIL's capabilities. This is
+ * where parcels are sent and received from and translated into API calls.
+ * For the most part, this object is pretty boring as it simply translates
+ * between method calls and RIL parcels. Somebody's gotta do the job...
  */
 let RIL = {
 
-  //XXX TODO beware, this is just demo code, showing what the high level
-  // processing of the parcels would look like. It's still missing
-  // communication with the UI thread.
-
-  ril: null,
-  IMEISV: null,
-  IMSI: null,
-  operator: null,
-  IMEI: null,
-  baseband_version: null,
-  network_selection_mode: null,
-
   /**
-   * Outgoing requests to the RIL.
+   * Request the phone's radio power to be switched on or off.
+   *
+   * @param on
+   *        Boolean indicating the desired power state.
    */
+  setRadioPower: function setRadioPower(on) {
+    Buf.newParcel(RIL_REQUEST_RADIO_POWER);
+    Buf.writeUint32(1);
+    Buf.writeUint32(on ? 1: 0);
+    Buf.sendParcel();
+  },
 
   /**
    * Dial the phone.
@@ -376,7 +389,7 @@ let RIL = {
    * @param uusInfo
    *        Integer doing something XXX TODO
    */
-  dialPhone: function dialPhone(address, clirMode, uusInfo) {
+  dial: function dial(address, clirMode, uusInfo) {
     let token = Buf.newParcel(RIL_REQUEST_DIAL);
     Buf.writeString(address);
     Buf.writeUint32(clirMode || 0);
@@ -407,43 +420,6 @@ let RIL = {
     Buf.sendParcel();
   },
 
-  networkStateChanged: function networkStateChanged() {
-    Buf.simpleRequest(RIL_REQUEST_REGISTRATION_STATE);
-    Buf.simpleRequest(RIL_REQUEST_GPRS_REGISTRATION_STATE);
-    Buf.simpleRequest(RIL_REQUEST_OPERATOR);
-  },
-
-  radioStateChanged: function(radioState) {
-    if (radioState == RADIOSTATE_OFF) {
-      debug("Turning radio on");
-      Buf.newParcel(RIL_REQUEST_RADIO_POWER);
-      Buf.writeUint32(1);
-      Buf.writeUint32(1); //TODO this should be something like "on ? 1 : 0"
-      Buf.sendParcel();
-    } else {
-      if (this.IMEI == null) {
-        Buf.simpleRequest(RIL_REQUEST_GET_IMEI);
-        this.networkStateChangedRequest();
-      }
-      if (this.IMEISV == null) {
-        Buf.simpleRequest(RIL_REQUEST_GET_IMEISV);
-      }
-      if (this.baseband_version == null) {
-        Buf.simpleRequest(RIL_REQUEST_BASEBAND_VERSION);
-      }
-    }
-  },
-
-  //TODO add moar stuff here.
-
-
-  /**
-   * Handle incoming messages from the main UI thread.
-   */
-  handleMessage: function handleMessage(message) {
-    //TODO
-  },
-
   /**
    * Handle incoming requests from the RIL. We find the method that
    * corresponds to the request type. Incidentally, the request type
@@ -469,8 +445,8 @@ RIL[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
 RIL[RIL_REQUEST_GET_CURRENT_CALLS] = null;
 RIL[RIL_REQUEST_DIAL] = null;
 RIL[RIL_REQUEST_GET_IMSI] = function RIL_REQUEST_GET_IMSI(length) {
-  this.IMSI = Buf.readString(length);
-  //TODO send a change event to the mainthread?
+  let imsi = Buf.readString(length);
+  Phone.onIMSI(imsi);
 };
 RIL[RIL_REQUEST_HANGUP] = null;
 RIL[RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND] = null;
@@ -480,18 +456,25 @@ RIL[RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE] = null;
 RIL[RIL_REQUEST_CONFERENCE] = null;
 RIL[RIL_REQUEST_UDUB] = null;
 RIL[RIL_REQUEST_LAST_CALL_FAIL_CAUSE] = null;
-RIL[RIL_REQUEST_SIGNAL_STRENGTH] = null;
+RIL[RIL_REQUEST_SIGNAL_STRENGTH] = function RIL_REQUEST_SIGNAL_STRENGTH() {
+  const length = 7;
+  let strength = [];
+  for (let i = 0; i < length; i ++) {
+    strength.push(Buf.readUint32());
+  }
+  Phone.onSignalStrength(strength);
+};
 RIL[RIL_REQUEST_REGISTRATION_STATE] = function RIL_REQUEST_REGISTRATION_STATE(length) {
-  this.registrationState = Buf.readStringList();
-  //TODO send a change event to the mainthread?
+  let state = Buf.readStringList();
+  Phone.onRegistrationState(state);
 };
 RIL[RIL_REQUEST_GPRS_REGISTRATION_STATE] = function RIL_REQUEST_GPRS_REGISTRATION_STATE(length) {
-  this.gprsRegistrationState = Buf.readStringList();
-  //TODO send a change event to the mainthread?
+  let state = Buf.readStringList();
+  Phone.onGPRSRegistrationState(state);
 };
 RIL[RIL_REQUEST_OPERATOR] = function RIL_REQUEST_OPERATOR(length) {
-  this.operator = Buf.readStringList();
-  //TODO send a change event to the mainthread?
+  let operator = Buf.readStringList();
+  Phone.onOperator(operator);
 };
 RIL[RIL_REQUEST_RADIO_POWER] = null;
 RIL[RIL_REQUEST_DTMF] = null;
@@ -499,7 +482,7 @@ RIL[RIL_REQUEST_SEND_SMS] = function RIL_REQUEST_SEND_SMS() {
   let messageRef = Buf.readUint32();
   let ackPDU = p.readString();
   let errorCode = p.readUint32();
-  //TODO send an event to the mainthread
+  Phone.onSendSMS(messageRef, ackPDU, errorCode);
 };
 RIL[RIL_REQUEST_SEND_SMS_EXPECT_MORE] = null;
 RIL[RIL_REQUEST_SETUP_DATA_CALL] = null;
@@ -513,23 +496,32 @@ RIL[RIL_REQUEST_SET_CALL_FORWARD] = null;
 RIL[RIL_REQUEST_QUERY_CALL_WAITING] = null;
 RIL[RIL_REQUEST_SET_CALL_WAITING] = null;
 RIL[RIL_REQUEST_SMS_ACKNOWLEDGE] = null;
-RIL[RIL_REQUEST_GET_IMEI] = function RIL_REQUEST_GET_IMEI(length) {
-  this.IMEI = Buf.readString(length);
-  //TODO send a change event to the mainthread?
+RIL[RIL_REQUEST_GET_IMEI] = function RIL_REQUEST_GET_IMEI() {
+  let imei = Buf.readString();
+  Phone.onIMEI(imei);
 };
-RIL[RIL_REQUEST_GET_IMEISV] = null;
+RIL[RIL_REQUEST_GET_IMEISV] = function RIL_REQUEST_GET_IMEISV() {
+  let imeiSV = Buf.readString();
+  Phone.onIMEISV(imeiSV);
+};
 RIL[RIL_REQUEST_ANSWER] = null;
 RIL[RIL_REQUEST_DEACTIVATE_DATA_CALL] = null;
 RIL[RIL_REQUEST_QUERY_FACILITY_LOCK] = null;
 RIL[RIL_REQUEST_SET_FACILITY_LOCK] = null;
 RIL[RIL_REQUEST_CHANGE_BARRING_PASSWORD] = null;
-RIL[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE] = null;
+RIL[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE] = function RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE() {
+  let response = Buf.readUint32List();
+  Phone.onNetworkSelectionMode(response);
+};
 RIL[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = null;
 RIL[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL] = null;
 RIL[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS] = null;
 RIL[RIL_REQUEST_DTMF_START] = null;
 RIL[RIL_REQUEST_DTMF_STOP] = null;
-RIL[RIL_REQUEST_BASEBAND_VERSION] = null,
+RIL[RIL_REQUEST_BASEBAND_VERSION] = function RIL_REQUEST_BASEBAND_VERSION() {
+  let version = Buf.readString();
+  Phone.onBasebandVersion(version);
+},
 RIL[RIL_REQUEST_SEPARATE_CONNECTION] = null;
 RIL[RIL_REQUEST_SET_MUTE] = null;
 RIL[RIL_REQUEST_GET_MUTE] = null;
@@ -582,12 +574,14 @@ RIL[RIL_REQUEST_GET_SMSC_ADDRESS] = null;
 RIL[RIL_REQUEST_SET_SMSC_ADDRESS] = null;
 RIL[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
 RIL[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
-RIL[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED(length) {
-  let radioState = Buf.readUint32(); //XXX I don't think this is right
-  this.radioStateChanged(radioState);
+RIL[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED() {
+  let newState = Buf.readUint32();
+  Phone.radioStateChanged(newState);
 };
 RIL[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = null;
-RIL[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = null;
+RIL[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED() {
+  Phone.networkStateChanged();
+};
 RIL[RIL_UNSOL_RESPONSE_NEW_SMS] = null;
 RIL[RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT] = null;
 RIL[RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM] = null;
@@ -618,6 +612,186 @@ RIL[RIL_UNSOL_RINGBACK_TONE] = null;
 RIL[RIL_UNSOL_RESEND_INCALL_MUTE] = null;
 
 
+/**
+ * This object represents the phone's state and functionality. It is
+ * essentially a state machine that's being acted upon from RIL and the
+ * mainthread via postMessage communication.
+ */
+let Phone = {
+
+  //XXX TODO beware, this is just demo code. It's still missing
+  // communication with the UI thread.
+
+  /**
+   * One of the RADIOSTATE_* constants.
+   */
+  radioState: null,
+
+  /**
+   * Strings
+   */
+  IMEI: null,
+  IMEISV: null,
+  IMSI: null,
+
+  /**
+   * List of strings identifying the network operator.
+   */
+  operator: null,
+
+  /**
+   * String containing the baseband version.
+   */
+  basebandVersion: null,
+
+  /**
+   * Network selection mode. 0 for automatic, 1 for manual selection.
+   */
+  networkSelectionMode: null,
+
+
+  /**
+   * Handlers for messages from the RIL. They all begin with on*.
+   */
+
+  onRadioStateChanged: function onRadioStateChanged() {
+    if (this.radioState == newState) {
+      // No change in state, return.
+      return;
+    }
+
+    if (this.radioState == RADIOSTATE_UNAVAILABLE &&
+        newState != RADIOSTATE_UNAVAILABLE) {
+      // The radio became available, let's get its info.
+      //TODO convert to method calls on RIL
+      Buf.simpleRequest(RIL_REQUEST_GET_IMEI);
+      Buf.simpleRequest(RIL_REQUEST_GET_IMEISV);
+      Buf.simpleRequest(RIL_REQUEST_BASEBAND_VERSION);
+    }
+    if (this.radioState != RADIOSTATE_UNAVAILABLE &&
+        newState == RADIOSTATE_UNAVAILABLE) {
+      // The radio is no longer available, we need to deal with any
+      // remaining pending requests.
+      //TODO
+    }
+    if (this.radioState != RADIOSTATE_SIM_READY &&
+        newState == RADIOSTATE_SIM_READY) {
+      this.requestPhoneState();
+      //TODO schedule signal strength request
+    }
+    if (newState == RADIOSTATE_SIM_LOCKED_OR_ABSENT) {
+      //TODO
+    }
+    //TODO RUIM, NV, GSM/CDMA
+
+    let wasOn = this.radioState != RADIO_OFF &&
+                this.radioState != RADIO_UNAVAILABLE;
+    let isOn = newState != RADIO_OFF &&
+               newState != RADIO_UNAVAILABLE;
+    if (!wasOn && isOn) {
+      //TODO
+    }
+    if (wasOn && !isOn) {
+      //TODO
+    }
+
+    this.radioState = newState;
+  },
+
+  onNetworkStateChanged: function onNetworkStateChanged() {
+    this.requestPhoneState();
+  },
+
+  onNetworkSelectionMode: function onNetworkSelectionMode(mode) {
+    this.networkSelectionMode = mode[0];
+  },
+
+  onBasebandVersion: function onBasebandVersion(version) {
+    this.basebandVersion = version;
+  },
+
+  onIMSI: function onIMSI(imsi) {
+    this.IMSI = imsi;
+  },
+
+  onIMEI: function onIMEI(imei) {
+    this.IMEI = imei;
+  },
+
+  onIMEISV: function onIMEISV(imeiSV) {
+    this.IMEISV = imeiSV;
+  },
+
+  onRegistrationState: function onRegistrationState(newState) {
+    this.registrationState = newState;
+  },
+
+  onGPRSRegistrationState: function onGPRSRegistrationState(newState) {
+    this.gprsRegistrationState = state;
+  },
+
+  onOperator: function onOperator(operator) {
+    this.operator = operator;
+  },
+
+  onSignalStrength: function onSignalStrength(strength) {
+    //TODO
+  },
+
+  onSendSMS: function onSendSMS(messageRef, ackPDU, errorCode) {
+    //TODO
+  },
+
+
+  /**
+   * Outgoing requests to the RIL.
+   */
+
+  /**
+   * Request various states from the phone.
+   */
+  requestPhoneState: function requestPhoneState() {
+    //TODO convert to method calls on RIL.
+    Buf.simpleRequest(RIL_REQUEST_REGISTRATION_STATE);
+    Buf.simpleRequest(RIL_REQUEST_GPRS_REGISTRATION_STATE);
+    Buf.simpleRequest(RIL_REQUEST_OPERATOR);
+    Buf.simpleRequest(RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE);
+  },
+
+  /**
+   * Dial the phone.
+   *
+   * @param number
+   *        String containing the number to dial.
+   */
+  dial: function dial(number) {
+    RIL.dial(number, 0, 0);
+  },
+
+  /**
+   * Send an SMS.
+   *
+   * @param number
+   *        String containing the recipient number.
+   * @param message
+   *        String containing the message text.
+   */
+  sendSMS: function sendSMS(number, message) {
+    //TODO munge number and message into PDU format
+    let smscPDU = "";
+    let pdu = "";
+    RIL.sendSMS(smscPDU, pdu);
+  },
+
+  /**
+   * Handle incoming messages from the main UI thread.
+   */
+  handleMessage: function handleMessage(message) {
+    //TODO
+  },
+
+};
+
 onmessage = function onmessage(event) {
-  RIL.handleMessage(event.data);
+  Phone.handleMessage(event.data);
 };
