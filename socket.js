@@ -35,10 +35,11 @@ let SocketListener = {
     this.binaryOutputStream = BinaryOutputStream(this.outputStream);
     this.inputStream.asyncWait(this, 0, 0, Services.tm.currentThread);
     this.connected = true;
+    debug("Connected to " + host + ":" + port);
   },
 
   stop: function stop() {
-    dump("Stopping socket");
+    debug("Stopping socket");
     this.connected = false;
     this.socket.close(0);
   },
@@ -69,12 +70,17 @@ let SocketListener = {
   },
 
   processData: function processData(array_buffer) {
-    dump(array_buffer);
-    global.postMessage(new Uint8Array(array_buffer));
+    debug("Received " + array_buffer);
+    let event = document.createEvent("Event");
+    event.initEvent("RILMessageEvent", true, true);
+    event.data = new Uint8Array(array_buffer);
+    debug("Dispatching event");
+    window.dispatchEvent(event);
   },
 
   sendData: function sendData(array_buffer) {
-    let byte_array = Uint8Array(array_buffer);
+    debug("Sending " + Array.slice(array_buffer));
+    let byte_array = new Uint8Array(array_buffer);
     //XXX TODO is the Array.slice() necessary? Maybe writeByteArray()
     // will just eat a TypedArray...
     this.binaryOutputStream.writeByteArray(Array.slice(byte_array),
@@ -92,10 +98,6 @@ function postRILMessage(message) {
 }
 
 function debug(msg) {
-  console.log(msg);
-}
-
-function dump(msg) {
   console.log(msg);
 }
 

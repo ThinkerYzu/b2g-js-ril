@@ -427,8 +427,10 @@ let RIL = {
    */
 
   handleParcel: function handleParcel(request_type, length) {
+    debug("Received parcel for request type " + request_type);
     let method = this[request_type];
     if (typeof method == "function") {
+      debug("Handling parcel as " + method.name);
       method.call(this, length);
     }
   }
@@ -576,11 +578,11 @@ RIL[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
 RIL[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
 RIL[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED() {
   let newState = Buf.readUint32();
-  Phone.radioStateChanged(newState);
+  Phone.onRadioStateChanged(newState);
 };
 RIL[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = null;
 RIL[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED() {
-  Phone.networkStateChanged();
+  Phone.onNetworkStateChanged();
 };
 RIL[RIL_UNSOL_RESPONSE_NEW_SMS] = null;
 RIL[RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT] = null;
@@ -654,7 +656,8 @@ let Phone = {
    * Handlers for messages from the RIL. They all begin with on*.
    */
 
-  onRadioStateChanged: function onRadioStateChanged() {
+  onRadioStateChanged: function onRadioStateChanged(newState) {
+    debug("Radio state changed from " + this.radioState + " to " + newState);
     if (this.radioState == newState) {
       // No change in state, return.
       return;
@@ -699,6 +702,7 @@ let Phone = {
   },
 
   onNetworkStateChanged: function onNetworkStateChanged() {
+    debug("Network state changed.");
     this.requestPhoneState();
   },
 
@@ -751,6 +755,7 @@ let Phone = {
    * Request various states from the phone.
    */
   requestPhoneState: function requestPhoneState() {
+    debug("Requesting phone state");
     //TODO convert to method calls on RIL.
     Buf.simpleRequest(RIL_REQUEST_REGISTRATION_STATE);
     Buf.simpleRequest(RIL_REQUEST_GPRS_REGISTRATION_STATE);
