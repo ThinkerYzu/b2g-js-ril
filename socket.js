@@ -79,8 +79,8 @@ let SocketListener = {
   },
 
   sendData: function sendData(array_buffer) {
-    debug("Sending " + Array.slice(array_buffer));
     let byte_array = new Uint8Array(array_buffer);
+    debug("Sending " + Array.slice(byte_array));
     //XXX TODO is the Array.slice() necessary? Maybe writeByteArray()
     // will just eat a TypedArray...
     this.binaryOutputStream.writeByteArray(Array.slice(byte_array),
