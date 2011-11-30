@@ -164,15 +164,19 @@ let Buf = {
     for (let i = 0; i < string_len; i++) {
       s += String.fromCharCode(this.readUint16());
     }
-    // Strings are \0\0 delimited, but that isn't part of the length.
+    // Strings are \0\0 delimited, but that isn't part of the length. And
+    // if the string length is even, the delimiter is two characters wide.
+    // It's insane, I know.
     let delimiter = this.readUint16();
+    if (!(string_len % 2)) {
+      delimiter += this.readUint16();
+    }
     debug("String delimiter: " + delimiter);
     return s;
   },
 
   readStringList: function readStringList() {
     let num_strings = this.readUint32();
-debug("String list of length: " + num_strings);
     let strings = [];
     for (let i = 0; i < num_strings; i++) {
       strings.push(this.readString());
@@ -211,8 +215,13 @@ debug("String list of length: " + num_strings);
     for (let i = 0; i < value.length; i++) {
       this.writeUint16(value.charCodeAt(i));
     }
-    // Strings are \0\0 delimited, but that isn't part of the length.
+    // Strings are \0\0 delimited, but that isn't part of the length. And
+    // if the string length is even, the delimiter is two characters wide.
+    // It's insane, I know.
     this.writeUint16(0);
+    if (!(value.length % 2)) {
+      this.writeUint16(0);
+    }
   },
 
   writeStringList: function writeStringList(strings) {
@@ -323,7 +332,7 @@ debug("String list of length: " + num_strings);
       // Let's do that.
       let expectedAfterIndex = (this.incomingReadIndex + this.currentParcelSize)
                                % this.INCOMING_BUFFER_LENGTH;
-      debug("Parcel: " +
+      debug("Incoming parcel: " +
             Array.slice(this.incomingBytes.subarray(this.incomingReadIndex,
                                                     expectedAfterIndex)));
       try {
@@ -403,7 +412,7 @@ debug("String list of length: " + num_strings);
     // It also assumes that it will make a copy of the ArrayBufferView right
     // away.
     let parcel = this.outgoingBytes.subarray(0, this.outgoingIndex);
-debug(Array.slice(parcel));
+    debug("Outgoing parcel: " + Array.slice(parcel));
     postRILMessage(parcel);
     this.outgoingIndex = PARCEL_SIZE_SIZE;
   },
