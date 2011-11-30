@@ -22,11 +22,13 @@
 <script type="application/javascript;version=1.8">
 
 function init() {
-  Cu.import("resource://gre/modules/Services.jsm");
-  let chromeWin = Services.wm.getMostRecentWindow("navigator:browser");
-  if (!chromeWin.HUDConsoleUI.getOpenHUD()) {
-    chromeWin.HUDConsoleUI.toggleHUD();
-  }
+  window.setTimeout(function () {
+    Cu.import("resource://gre/modules/Services.jsm");
+    let chromeWin = Services.wm.getMostRecentWindow("navigator:browser");
+    if (!chromeWin.HUDConsoleUI.getOpenHUD()) {
+      chromeWin.HUDConsoleUI.toggleHUD();
+    }
+  }, 100);
 }
 
 function connect() {
