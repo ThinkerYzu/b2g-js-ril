@@ -59,6 +59,7 @@
 
 loadScripts("ril_vars.js");
 
+const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
 const UINT32_SIZE = 4;
@@ -155,16 +156,23 @@ let Buf = {
   },
 
   readString: function readString() {
-	let string_len = this.readUint32();
+    let string_len = this.readUint32();
+    if (string_len >= INT32_MAX) {
+      return null;
+    }
     let s = "";
     for (let i = 0; i < string_len; i++) {
       s += String.fromCharCode(this.readUint16());
     }
+    // Strings are \0\0 delimited, but that isn't part of the length.
+    let delimiter = this.readUint16();
+    debug("String delimiter: " + delimiter);
     return s;
   },
 
   readStringList: function readStringList() {
     let num_strings = this.readUint32();
+debug("String list of length: " + num_strings);
     let strings = [];
     for (let i = 0; i < num_strings; i++) {
       strings.push(this.readString());
@@ -202,6 +210,15 @@ let Buf = {
     this.writeUint32(value.length);
     for (let i = 0; i < value.length; i++) {
       this.writeUint16(value.charCodeAt(i));
+    }
+    // Strings are \0\0 delimited, but that isn't part of the length.
+    this.writeUint16(0);
+  },
+
+  writeStringList: function writeStringList(strings) {
+    this.writeUint32(strings.length);
+    for (let i = 0; i < strings.length; i++) {
+      this.writeString(strings[i]);
     }
   },
 
@@ -306,6 +323,9 @@ let Buf = {
       // Let's do that.
       let expectedAfterIndex = (this.incomingReadIndex + this.currentParcelSize)
                                % this.INCOMING_BUFFER_LENGTH;
+      debug("Parcel: " +
+            Array.slice(this.incomingBytes.subarray(this.incomingReadIndex,
+                                                    expectedAfterIndex)));
       try {
         this.processParcel();
       } catch (ex) {
@@ -335,6 +355,13 @@ let Buf = {
     let request_type;
     if (response_type == RESPONSE_TYPE_SOLICITED) {
       let token = this.readUint32();
+      let error = this.readUint32();
+      if (error) {
+        //TODO
+        debug("Received error " + error + " for solicited parcel type " +
+              response_type);
+        return;
+      }
       request_type = this.tokenRequestMap[token];
       debug("Solicited response for request type " + request_type +
             ", token " + token);
@@ -376,6 +403,7 @@ let Buf = {
     // It also assumes that it will make a copy of the ArrayBufferView right
     // away.
     let parcel = this.outgoingBytes.subarray(0, this.outgoingIndex);
+debug(Array.slice(parcel));
     postRILMessage(parcel);
     this.outgoingIndex = PARCEL_SIZE_SIZE;
   },
