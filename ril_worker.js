@@ -472,6 +472,16 @@ let RIL = {
     Buf.sendParcel();
   },
 
+  /**
+   * Get current calls.
+   */
+  getCurrentCalls: function getCurrentCalls() {
+    Buf.simpleRequest(RIL_REQUEST_GET_CURRENT_CALLS);
+  },
+
+  /**
+   * Get the signal strength.
+   */
   getSignalStrength: function getSignalStrength() {
     Buf.simpleRequest(RIL_REQUEST_SIGNAL_STRENGTH);
   },
@@ -534,8 +544,8 @@ let RIL = {
 
 RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
   let simStatus = {
-    cardState:                   Buf.readUint32(),
-    universalPINState:           Buf.readUint32(),
+    cardState:                   Buf.readUint32(), // CARDSTATE_*
+    universalPINState:           Buf.readUint32(), // PINSTATE_*
     gsmUmtsSubscriptionAppIndex: Buf.readUint32(),
     setCdmaSubscriptionAppIndex: Buf.readUint32(),
     apps:                        []
@@ -548,9 +558,9 @@ RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
 
   for (let i = 0 ; i < apps_length ; i++) {
     simStatus.apps.push({
-      app_type:       Buf.readUint32(),
-      app_state:      Buf.readUint32(),
-      perso_substate: Buf.readUint32(),
+      app_type:       Buf.readUint32(), // APPTYPE_*
+      app_state:      Buf.readUint32(), // APPSTATE_*
+      perso_substate: Buf.readUint32(), // PERSOSUBSTATE_*
       aid:            Buf.readString(),
       app_label:      Buf.readString(),
       pin1_replaced:  Buf.readUint32(),
@@ -570,7 +580,40 @@ RIL[RIL_REQUEST_ENTER_SIM_PUK2] = null;
 RIL[RIL_REQUEST_CHANGE_SIM_PIN] = null;
 RIL[RIL_REQUEST_CHANGE_SIM_PIN2] = null;
 RIL[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
-RIL[RIL_REQUEST_GET_CURRENT_CALLS] = null;
+RIL[RIL_REQUEST_GET_CURRENT_CALLS] = function RIL_REQUEST_GET_CURRENT_CALLS() {
+  let calls = [];
+  let calls_length = Buf.readUint32();
+  debug("No. of current calls: " + calls_length);
+/*
+  for (let i = 0; i < calls_length; i++) {
+    let dc = {
+      state:              Buf.readUint32(), // CALLSTATE_* constants
+      index:              Buf.readUint32(),
+      TOA:                Buf.readUint32(),
+      isMpty:             (0 != Buf.readUint32()),
+      isMT:               (0 != Buf.readUint32()),
+      als:                Buf.readUint32(),
+      isVoice:            (0 == Buf.readUint32()) ? false : true,
+      isVoicePrivacy:     (0 != Buf.readUint32()),
+      number:             Buf.readString(), //TODO munge with TOA
+      numberPresentation: Buf.readUint32(), // Connection.PRESENTATION XXX TODO
+      name:               Buf.readString(),
+      namePresentation:   Buf.readUint32(),
+      uusInfo:            null
+    };
+    let uusInfoPresent = Buf.readUint32();
+    if (uusInfoPresent == 1) {
+      dc.uusInfo = {
+        type:     Buf.readUint32(),
+        dcs:      Buf.readUint32(),
+        userData: null //XXX TODO byte array?!?
+      };
+    }
+    calls.push(dc);
+  }
+*/
+  Phone.onCurrentCalls(calls);
+};
 RIL[RIL_REQUEST_DIAL] = null;
 RIL[RIL_REQUEST_GET_IMSI] = function RIL_REQUEST_GET_IMSI(length) {
   let imsi = Buf.readString(length);
@@ -706,7 +749,9 @@ RIL[RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_RADIO_
   let newState = Buf.readUint32();
   Phone.onRadioStateChanged(newState);
 };
-RIL[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = null;
+RIL[RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED() {
+  Phone.onCallStateChanged();
+};
 RIL[RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED] = function RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED() {
   Phone.onNetworkStateChanged();
 };
@@ -827,6 +872,15 @@ let Phone = {
     }
 
     this.radioState = newState;
+  },
+
+  onCurrentCalls: function onCurrentCalls(calls) {
+    debug("onCurrentCalls");
+    debug(calls);
+  },
+
+  onCallStateChanged: function onCallStateChanged() {
+    RIL.getCurrentCalls();
   },
 
   onNetworkStateChanged: function onNetworkStateChanged() {
