@@ -59,6 +59,8 @@
 
 importScripts("ril_vars.js");
 
+const DEBUG = true;
+
 const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
@@ -311,10 +313,14 @@ let Buf = {
    * Process incoming data.
    */
   processIncoming: function processIncoming(incoming) {
+    if (DEBUG) {
+      debug("Received " + incoming.length + " bytes.");
+      debug("Previous buffer size is " + this.readIncoming);
+    }
+
     this.writeToIncoming(incoming);
     this.readIncoming += incoming.length;
     while (true) {
-      debug("Read Incoming: " + this.readIncoming);
       if (!this.currentParcelSize) {
         // We're expecting a new parcel.
         if (this.readIncoming < PARCEL_SIZE_SIZE) {
@@ -323,6 +329,7 @@ let Buf = {
           return;
         }
         this.currentParcelSize = this.readParcelSize();
+        if (DEBUG) debug("New parcel, size " + this.currentParcelSize);
         // The size itself is not included in the size.
         this.readIncoming -= PARCEL_SIZE_SIZE;
       }
@@ -336,20 +343,35 @@ let Buf = {
       // Let's do that.
       let expectedAfterIndex = (this.incomingReadIndex + this.currentParcelSize)
                                % this.INCOMING_BUFFER_LENGTH;
-      debug("Incoming parcel: " +
-            Array.slice(this.incomingBytes.subarray(this.incomingReadIndex,
-                                                    expectedAfterIndex)));
+
+      if (DEBUG) {
+        let parcel;
+        if (expectedAfterIndex < this.incomingReadIndex) {
+          let head = this.incomingBytes.subarray(this.incomingReadIndex);
+          let tail = this.incomingBytes.subarray(0, expectedAfterIndex);
+          parcel = Array.slice(head).concat(Array.slice(tail));
+        } else {
+          parcel = Array.slice(this.incomingBytes.subarray(
+            this.incomingReadIndex, expectedAfterIndex));
+        }
+        if (DEBUG) {
+          debug("Parcel (size " + this.currentParcelSize + "): " + parcel);
+        }
+      }
+
       try {
         this.processParcel();
       } catch (ex) {
-        debug("Parcel handling threw " + ex);
+        if (DEBUG) debug("Parcel handling threw " + ex);
       }
 
       // Ensure that the whole parcel was consumed.
       if (this.incomingReadIndex != expectedAfterIndex) {
-        debug("Parcel handling code did not consume the right amount of data!" +
-              " Expected: " + expectedAfterIndex +
-              " Actual: " + this.incomingReadIndex);
+        if (DEBUG) {
+          debug("Parcel handler didn't consume whole parcel, " +
+                Math.abs(expectedAfterIndex - this.incomingReadIndex) +
+                " bytes left over");
+        }
         this.incomingReadIndex = expectedAfterIndex;
       }
       this.readIncoming -= this.currentParcelSize;
