@@ -157,7 +157,7 @@ let Buf = {
 
   readString: function readString() {
     let string_len = this.readUint32();
-    if (string_len >= INT32_MAX) {
+    if (string_len < 0 || string_len >= INT32_MAX) {
       return null;
     }
     let s = "";
@@ -211,6 +211,10 @@ let Buf = {
   },
 
   writeString: function writeString(value) {
+    if (value == null) {
+      this.writeUint32(-1);
+      return;
+    }
     this.writeUint32(value.length);
     for (let i = 0; i < value.length; i++) {
       this.writeUint16(value.charCodeAt(i));
