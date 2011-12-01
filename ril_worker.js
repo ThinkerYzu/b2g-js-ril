@@ -465,20 +465,20 @@ addEventListener("RILMessageEvent", function onRILMessageEvent(event) {
 let RIL = {
 
   /**
-   * Retrieve the SIM card's status.
+   * Retrieve the ICC card's status.
    * 
-   * Response will call Phone.onSIMStatus().
+   * Response will call Phone.onICCStatus().
    */
-  getSIMStatus: function getSIMStatus() {
+  getICCStatus: function getICCStatus() {
     Buf.simpleRequest(RIL_REQUEST_GET_SIM_STATUS);
   },
 
   /**
-   * Enter a PIN to unlock the SIM.
+   * Enter a PIN to unlock the ICC.
    * 
    * Response will call Phone.onEnterSIMPIN().
    */
-  enterSIMPIN: function enterSIMPIN(pin) {
+  enterICCPIN: function enterICCPIN(pin) {
     Buf.newParcel(RIL_REQUEST_ENTER_SIM_PIN);
     Buf.writeUint32(1);
     Buf.writeString(pin);
@@ -494,7 +494,20 @@ let RIL = {
   setRadioPower: function setRadioPower(on) {
     Buf.newParcel(RIL_REQUEST_RADIO_POWER);
     Buf.writeUint32(1);
-    Buf.writeUint32(on ? 1: 0);
+    Buf.writeUint32(on ? 1 : 0);
+    Buf.sendParcel();
+  },
+
+  /**
+   * Set screen state.
+   *
+   * @param on
+   *        Boolean indicating whether the screen should be on or off.
+   */
+  setScreenState: function setScreenState(on) {
+    Buf.newParcel(RIL_REQUEST_SCREEN_STATE);
+    Buf.writeUint32(1);
+    Buf.writeUint32(on ? 1 : 0);
     Buf.sendParcel();
   },
 
@@ -510,6 +523,18 @@ let RIL = {
    */
   getSignalStrength: function getSignalStrength() {
     Buf.simpleRequest(RIL_REQUEST_SIGNAL_STRENGTH);
+  },
+
+  getIMEI: function getIMEI() {
+    Buf.simpleRequest(RIL_REQUEST_GET_IMEI);
+  },
+
+  getIMEISV: function getIMEISV() {
+    Buf.simpleRequest(RIL_REQUEST_GET_IMEISV);
+  },
+
+  getDeviceIdentity: function getDeviceIdentity() {
+    Buf.simpleRequest(RIL_REQUEST_GET_DEVICE_IDENTITY);
   },
 
   /**
@@ -569,7 +594,7 @@ let RIL = {
 };
 
 RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
-  let simStatus = {
+  let iccStatus = {
     cardState:                   Buf.readUint32(), // CARDSTATE_*
     universalPINState:           Buf.readUint32(), // PINSTATE_*
     gsmUmtsSubscriptionAppIndex: Buf.readUint32(),
@@ -583,7 +608,7 @@ RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
   }
 
   for (let i = 0 ; i < apps_length ; i++) {
-    simStatus.apps.push({
+    iccStatus.apps.push({
       app_type:       Buf.readUint32(), // APPTYPE_*
       app_state:      Buf.readUint32(), // APPSTATE_*
       perso_substate: Buf.readUint32(), // PERSOSUBSTATE_*
@@ -594,11 +619,11 @@ RIL[RIL_REQUEST_GET_SIM_STATUS] = function RIL_REQUEST_GET_SIM_STATUS() {
       pin2:           Buf.readUint32()
     });
   }
-  Phone.onSIMStatus(simStatus);
+  Phone.onICCStatus(iccStatus);
 };
 RIL[RIL_REQUEST_ENTER_SIM_PIN] = function RIL_REQUEST_ENTER_SIM_PIN() {
   let response = Buf.readUint32List();
-  Phone.onEnterSIMPIN(response);
+  Phone.onEnterICCPIN(response);
 };
 RIL[RIL_REQUEST_ENTER_SIM_PUK] = null;
 RIL[RIL_REQUEST_ENTER_SIM_PIN2] = null;
@@ -654,11 +679,22 @@ RIL[RIL_REQUEST_CONFERENCE] = null;
 RIL[RIL_REQUEST_UDUB] = null;
 RIL[RIL_REQUEST_LAST_CALL_FAIL_CAUSE] = null;
 RIL[RIL_REQUEST_SIGNAL_STRENGTH] = function RIL_REQUEST_SIGNAL_STRENGTH() {
-  const length = 7;
-  let strength = [];
-  for (let i = 0; i < length; i ++) {
-    strength.push(Buf.readUint32());
-  }
+  let strength = {
+    // Valid values are (0-31, 99) as defined in TS 27.007 8.5.
+    gsmSignalStrength: Buf.readUint32(),
+    // GSM bit error rate (0-7, 99) as defined in TS 27.007 8.5.
+    gsmBitErrorRate:   Buf.readUint32(),
+    // The CDMA RSSI value.
+    cdmaDBM:           Buf.readUint32(),
+    // The CDMA EC/IO.
+    cdmaECIO:          Buf.readUint32(),
+    // The EVDO RSSI value.
+    evdoDBM:           Buf.readUint32(),
+    // The EVDO EC/IO.
+    evdoECIO:          Buf.readUint32(),
+    // Valid values are 0-8.  8 is the highest signal to noise ratio
+    evdoSNR:           Buf.readUint32()
+  };
   Phone.onSignalStrength(strength);
 };
 RIL[RIL_REQUEST_REGISTRATION_STATE] = function RIL_REQUEST_REGISTRATION_STATE(length) {
@@ -850,6 +886,10 @@ let Phone = {
    */
   networkSelectionMode: null,
 
+  /**
+   * ICC card status
+   */
+  iccStatus: null,
 
   /**
    * Handlers for messages from the RIL. They all begin with on*.
@@ -862,29 +902,61 @@ let Phone = {
       return;
     }
 
+    let gsm = newState == RADIOSTATE_SIM_NOT_READY        ||
+              newState == RADIOSTATE_SIM_LOCKED_OR_ABSENT ||
+              newState == RADIOSTATE_SIM_READY;
+    let cdma = newState == RADIOSTATE_RUIM_NOT_READY       ||
+               newState == RADIOSTATE_RUIM_READY            ||
+               newState == RADIOSTATE_RUIM_LOCKED_OR_ABSENT ||
+               newState == RADIOSTATE_NV_NOT_READY          ||
+               newState == RADIOSTATE_NV_READY;
+
+    // Figure out state transitions and send out more RIL requests as necessary
+    // as well as events to the main thread.
+
     if (this.radioState == RADIOSTATE_UNAVAILABLE &&
         newState != RADIOSTATE_UNAVAILABLE) {
       // The radio became available, let's get its info.
-      //TODO convert to method calls on RIL
-      Buf.simpleRequest(RIL_REQUEST_GET_IMEI);
-      Buf.simpleRequest(RIL_REQUEST_GET_IMEISV);
+      if (gsm) {
+        RIL.getIMEI();
+        RIL.getIMEISV();
+      }
+      if (cdma) {
+        RIL.getDeviceIdentity();
+      }
       Buf.simpleRequest(RIL_REQUEST_BASEBAND_VERSION);
+      RIL.setScreenState(true);
+      this.sendDOMMessage({
+        type: "radiostatechange",
+        radioState: (newState == RADIOSTATE_OFF) ? "off" : "ready"
+      });
     }
-    if (this.radioState != RADIOSTATE_UNAVAILABLE &&
-        newState == RADIOSTATE_UNAVAILABLE) {
+
+    if (newState == RADIOSTATE_UNAVAILABLE) {
       // The radio is no longer available, we need to deal with any
       // remaining pending requests.
-      //TODO
+      //TODO do that
+
+      this.sendDOMMessage({type: "radiostatechange",
+                           radioState: "unavailable"});
     }
-    if (this.radioState != RADIOSTATE_SIM_READY &&
-        newState == RADIOSTATE_SIM_READY) {
-      this.requestPhoneState();
-      //TODO schedule signal strength request
+
+    if (newState == RADIOSTATE_SIM_READY  ||
+        newState == RADIOSTATE_RUIM_READY ||
+        newState == RADIOSTATE_NV_READY) {
+      // The ICC card has become available. Get all the things.
+      RIL.getICCStatus();
+      this.requestNetworkInfo();
+      RIL.getSignalStrength();
+      this.sendDOMMessage({type: "cardstatechange",
+                           cardState: "ready"});
     }
-    if (newState == RADIOSTATE_SIM_LOCKED_OR_ABSENT) {
-      //TODO
+    if (newState == RADIOSTATE_SIM_LOCKED_OR_ABSENT  ||
+        newState == RADIOSTATE_RUIM_LOCKED_OR_ABSENT) {
+      RIL.getICCStatus();
+      this.sendDOMMessage({type: "cardstatechange",
+                           cardState: "unavailable"});
     }
-    //TODO RUIM, NV, GSM/CDMA
 
     let wasOn = this.radioState != RADIOSTATE_OFF &&
                 this.radioState != RADIOSTATE_UNAVAILABLE;
@@ -911,17 +983,18 @@ let Phone = {
 
   onNetworkStateChanged: function onNetworkStateChanged() {
     debug("Network state changed, re-requesting phone state.");
-    this.requestPhoneState();
+    this.requestNetworkInfo();
   },
 
-  onSIMStatus: function onSIMStatus(simStatus) {
-    debug("SIM card state is " + simStatus.cardState);
-    debug("Universal PIN state is " + simStatus.universalPINState);
-    debug(simStatus);
-    //TODO
+  onICCStatus: function onICCStatus(iccStatus) {
+    debug("SIM card state is " + iccStatus.cardState);
+    debug("Universal PIN state is " + iccStatus.universalPINState);
+    debug(iccStatus);
+    //TODO set to simStatus and figure out state transitions.
+    this.iccStatus = iccStatus; //XXX TODO
   },
 
-  onEnterSIMPIN: function onEnterSIMPIN(response) {
+  onEnterICCPIN: function onEnterICCPIN(response) {
     debug("RIL_REQUEST_ENTER_SIM_PIN returned " + response);
     //TODO
   },
@@ -955,11 +1028,23 @@ let Phone = {
   },
 
   onOperator: function onOperator(operator) {
-    this.operator = operator;
+    if (operator.length < 3) {
+      debug("Expected at least 3 strings for operator.");
+    }
+    if (!this.operator ||
+        this.operator.alphaLong  != operator[0] ||
+        this.operator.alphaShort != operator[1] ||
+        this.operator.numeric    != operator[2]) {
+      this.operator = {alphaLong:  operator[0],
+                       alphaShort: operator[1],
+                       numeric:    operator[2]};
+      this.sendDOMMessage({type: "operatorchange",
+                           operator: this.operator});
+    }
   },
 
   onSignalStrength: function onSignalStrength(strength) {
-    debug("Signal strength " + strength);
+    debug("Signal strength " + JSON.stringify(strength));
     //TODO
   },
 
@@ -973,9 +1058,9 @@ let Phone = {
    */
 
   /**
-   * Request various states from the phone.
+   * Request various states about the network.
    */
-  requestPhoneState: function requestPhoneState() {
+  requestNetworkInfo: function requestNetworkInfo() {
     debug("Requesting phone state");
     //TODO convert to method calls on RIL.
     Buf.simpleRequest(RIL_REQUEST_REGISTRATION_STATE);
@@ -1011,13 +1096,28 @@ let Phone = {
 
   /**
    * Handle incoming messages from the main UI thread.
+   * 
+   * @param message
+   *        Object containing the message. Messages are supposed 
    */
-  handleMessage: function handleMessage(message) {
-    //TODO
+  handleDOMMessage: function handleMessage(message) {
+    let method = this[message.method];
+    if (typeof method != "function") {
+      debug("Don't know what to do with message " + JSON.stringify(message));
+      return;
+    }
+    method.apply(this, message.arguments);
   },
+
+  /**
+   * Send messages to the main UI thread.
+   */
+  sendDOMMessage: function sendDOMMessage(message) {
+    postMessage(message, "*");
+  }
 
 };
 
 onmessage = function onmessage(event) {
-  Phone.handleMessage(event.data);
+  Phone.handleDOMMessage(event.data);
 };
