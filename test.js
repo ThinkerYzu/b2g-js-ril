@@ -69,8 +69,8 @@ function addEventListener(type, cb) {
 function postRILMessage() {
 }
 
-function loadScripts() {
-  Array.map(arguments, function loadScript(script) {
+function importScripts() {
+  Array.map(arguments, function importScript(script) {
     load(script);
   });
 }

@@ -101,5 +101,5 @@ function debug(msg) {
   console.log(msg);
 }
 
-function loadScripts() {
+function importScripts() {
 }

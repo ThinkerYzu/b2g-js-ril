@@ -57,7 +57,7 @@
 
 "use strict";
 
-loadScripts("ril_vars.js");
+importScripts("ril_vars.js");
 
 const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
