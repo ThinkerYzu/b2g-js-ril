@@ -56,6 +56,9 @@ class Phone:
     def receiveParcel(self):
         data = Parcel()
         buf = self.socket.recv(8192)
+        if not buf:
+            raise IOError, 'lost connection or unkown reason'
+        
         data.setBuffer(buf)
         print ["0x%.02x" % ord(x) for x in buf]
         while data.dataLeft() > 0:
@@ -77,7 +80,11 @@ class Phone:
                 self._packets.pop(p.pid)
             if p.request_type in (CommandParcel.REQUEST_TYPES["RIL_REQUEST_OPERATOR"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_REGISTRATION_STATE"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_GPRS_REGISTRATION_STATE"]):
                 p.readInt()
-                self.outputStrings(p)
+                strings = self.outputStrings(p)
+                if p.request_type == CommandParcel.REQUEST_TYPES["RIL_REQUEST_OPERATOR"] and len(strings) > 0:
+                    # XXX
+                    self.makeDataConnection()
+                    pass
             elif p.request_type in (CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEI"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_IMEISV"], CommandParcel.REQUEST_TYPES["RIL_REQUEST_BASEBAND_VERSION"]):
                 p.readInt()
                 self.outputString(p)                
@@ -85,26 +92,57 @@ class Phone:
                 self.unsolRadioStateChanged(p)
             elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED"]:
                 self.unsolNetworkStateChanged(p)
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_SIM_STATUS"]:
+                self.handleSIMStatus(p)
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_REQUEST_DATA_CALL_LIST"]:
+                self.outputDataCallList(p)
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_REQUEST_SETUP_DATA_CALL"]:
+                errno = p.readInt()
+                if errno:
+                    print 'Errno: %d' % errno
+                    self.data_cx_flag = False
+                else:
+                    self.outputStrings(p)
+                    pass
+                pass
+            elif p.request_type == CommandParcel.REQUEST_TYPES["RIL_UNSOL_RESPONSE_NEW_SMS"]:
+                self.outputString(p)
+                pass
+            pass
+        pass
 
     def outputString(self, p):
         string_length = p.readInt()
         if string_length == 4294967295:
             print "NULL STRING"
-            return
+            return ""
         string_length = string_length + 1
         if string_length % 2 == 1:
             string_length = string_length + 1
         string = p.readRaw(string_length*2)    
         print "%d : %s" % (string_length, string.decode('utf-16')) #["0x%.02x" % ord(x) for x in string]) 
+        return string
 
     def outputStrings(self, p):        
         string_count = p.readInt()
+        print string_count
+        strings = []
         for i in range(0, string_count):            
-            self.outputString(p)
+            txt = self.outputString(p)
+            strings.append(txt)
+            pass
+        return strings
             
     def unsolRadioStateChanged(self, p):
         state = p.readInt()
         print "RADIO STATE: %s" % (self.RADIO_STATE[state])
+        if self.RADIO_STATE[state] == 'RADIO_STATE_SIM_LOCKED_OR_ABSENT':
+            # XXX
+            req = CommandParcel.REQUEST_TYPES["RIL_REQUEST_GET_SIM_STATUS"]
+            cmd_parcel = CommandParcel(req)
+            self.sendParcel(cmd_parcel)
+            pass
+        pass
 
     def unsolNetworkStateChanged(self, p):
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["RIL_REQUEST_REGISTRATION_STATE"]))
@@ -161,6 +199,156 @@ class Phone:
     def audioModeNormal(self):
         self.sendParcel(CommandParcel(CommandParcel.REQUEST_TYPES["AUDIO_REQUEST_MODE_NORMAL"]), False)
 
+    def handleSIMStatus(self, parcel):
+        card_state = parcel.readInt()
+        card_state_name = CommandParcel.getCardStateName(card_state)
+        print '\t%s' % card_state_name
+        
+        pin_state = parcel.readInt()
+        pin_state_name = CommandParcel.getPINStateName(pin_state)
+        print '\t%s' % pin_state_name
+
+        gsm_umts_subscription_app_index = parcel.readInt()
+        cdma_subscription_app_index = parcel.readInt()
+        num_applications = parcel.readInt()
+        
+        print '\tApplications (%d):' % num_applications
+
+        def parseAppStats():
+            '''
+  RIL_AppType      app_type;
+  RIL_AppState     app_state;
+  RIL_PersoSubstate perso_substate; /* applicable only if app_state ==
+                                       RIL_APPSTATE_SUBSCRIPTION_PERSO */
+  char             *aid_ptr;        /* null terminated string, e.g., from 0xA0, 0x00 -> 0x41,
+                                       0x30, 0x30, 0x30 */
+  char             *app_label_ptr;  /* null terminated string */
+  int              pin1_replaced;   /* applicable to USIM and CSIM */
+  RIL_PinState     pin1;
+  RIL_PinState     pin2;
+  '''
+            app_type = parcel.readInt()
+            app_type_name = CommandParcel.getAppTypeName(app_type)
+            app_state = parcel.readInt()
+            app_state_name = CommandParcel.getAppStateName(app_state)
+            perso_substate = parcel.readInt()
+            aid = parcel.readString()
+            app_label = parcel.readString()
+            pin1_replaced = parcel.readInt()
+            pin1_state = parcel.readInt()
+            pin1_state_name = CommandParcel.getPINStateName(pin1_state)
+            pin2_state = parcel.readInt()
+            pin2_state_name = CommandParcel.getPINStateName(pin2_state)
+
+            print (app_type_name, app_state_name, perso_substate, \
+                       aid, app_label, \
+                       pin1_replaced, pin1_state_name, pin2_state_name)
+            pass
+        
+        for i in range(num_applications):
+            parseAppStats()
+            pass
+        
+        if card_state_name == "RIL_CARDSTATE_PRESENT":
+            pass
+
+        if pin_state_name == "RIL_PINSTATE_ENABLED_NOT_VERIFIED":
+            # XXX
+            return              # remove this to enable verification
+            req_cmd = CommandParcel.REQUEST_TYPES["RIL_REQUEST_ENTER_SIM_PIN"]
+            req_parcel = CommandParcel(req_cmd)
+            req_parcel.writeInt(1)
+            req_parcel.writeString('0000') # PIN, be careful!! (max 3 tries)
+            self.sendParcel(req_parcel)
+            pass
+        pass
+
+    def makeDataConnection(self):
+        req_cmd = CommandParcel.REQUEST_TYPES["RIL_REQUEST_DATA_CALL_LIST"]
+        req_parcel = CommandParcel(req_cmd)
+        self.sendParcel(req_parcel)
+        
+        # XXX
+        if getattr(self, 'data_cx_flag', False):
+            return
+        print 'make data connection'
+        self.data_cx_flag = True
+        
+        '''
+ * "data" is a const char **
+ * ((const char **)data)[0] indicates whether to setup connection on radio technology CDMA
+ *                              or GSM/UMTS, 0-1. 0 - CDMA, 1-GSM/UMTS
+ *
+ * ((const char **)data)[1] is a RIL_DataProfile (support is optional)
+ * ((const char **)data)[2] is the APN to connect to if radio technology is GSM/UMTS. This APN will
+ *                          override the one in the profile. NULL indicates no APN overrride.
+ * ((const char **)data)[3] is the username for APN, or NULL
+ * ((const char **)data)[4] is the password for APN, or NULL
+ * ((const char **)data)[5] is the PAP / CHAP auth type. Values:
+ *                          0 => PAP and CHAP is never performed.
+ *                          1 => PAP may be performed; CHAP is never performed.
+ *                          2 => CHAP may be performed; PAP is never performed.
+ *                          3 => PAP / CHAP may be performed - baseband dependent.
+ * ((const char **)data)[6] is the PDP type to request if the radio technology is GSM/UMTS.
+ *                          Must be one of the PDP_type values in TS 27.007 section 10.1.1.
+ *                          For example, "IP", "IPV6", "IPV4V6", or "PPP".
+ '''
+        req_cmd = CommandParcel.REQUEST_TYPES["RIL_REQUEST_SETUP_DATA_CALL"]
+        req_parcel = CommandParcel(req_cmd)
+        req_parcel.writeInt(7)
+        
+        req_parcel.writeString("1") # 0 for CDMA, 1 for GSM/UMTS
+        req_parcel.writeString("0") # 0 for Default
+        req_parcel.writeString("internet")  # APN
+        req_parcel.writeString("")  # username
+        req_parcel.writeString("")  # passwd
+        req_parcel.writeString("0") # 0 for PAP and CHAP is never performed
+        req_parcel.writeString("IP") # PDP type
+
+        self.sendParcel(req_parcel)
+        pass
+
+    def outputDataCall(self, parcel):
+        '''
+typedef struct {
+    int             cid;        /* Context ID */
+    int             active;     /* 0=inactive, 1=active/physical link down, 2=active/physical link up */
+    char *          type;       /* One of the PDP_type values in TS 27.007 section 10.1.1.
+                                   For example, "IP", "IPV6", "IPV4V6", or "PPP". */
+    char *          apn;
+    char *          address;    /* The IPv4 or IPv6 address assigned to the call, e.g., "192.0.1.3"
+                                   or "2001:db8::1". */
+} RIL_Data_Call_Response;
+'''
+        cid = parcel.readInt()
+        print 'CID: 0x%08x' % cid
+        
+        active = parcel.readInt()
+        print 'Active: %d' % active
+
+        type = parcel.readString()
+        print 'Type: %s' % type
+        
+        apn = parcel.readString()
+        print 'APN: %s' % apn
+
+        address = parcel.readString()
+        print 'Address: %s' % address
+        pass
+
+    def outputDataCallList(self, parcel):
+        errno = parcel.readInt()
+        if errno != 0:
+            print 'Errno: %d' % errno
+            return
+        
+        count = parcel.readInt()
+        print 'COUNT: %d' % count
+        for i in range(count):
+            self.outputDataCall(parcel)
+            pass
+        pass
+    pass
 
 
 class Parcel:
@@ -189,17 +377,33 @@ class Parcel:
         self._buffer += "".join([chr(x) for x in l])
 
     def writeInt(self, i):
-        self._buffer += struct.pack("I", i)
+        self._buffer += struct.pack("i", i)
 
     def readInt(self):
-        i = struct.unpack_from("I", self._buffer[0+self._position:4+self._position])[0]
+        i = struct.unpack_from("i", self._buffer[0+self._position:4+self._position])[0]
         self._position = self._position + 4
         return i
+
+    def readByte(self):
+        v = ord(self._buffer[self._position])
+        self._position = self._position + 1
+        return v
 
     def readRaw(self, size):
         data = self._buffer[0+self._position:size+self._position]
         self._position += size
         return data
+
+    def readString(self):
+        num = self.readInt()
+        if num < 0:
+            return
+        
+        utf_16_r = '\xff\xfe' + \
+            self._buffer[self._position: self._position + num * 2]
+        r = utf_16_r.decode('utf-16')
+        self._position = self._position + num * 2 + 2
+        return r
 
 class CommandParcel(Parcel):
     serial = 1
@@ -346,6 +550,37 @@ class CommandParcel(Parcel):
         "AUDIO_REQUEST_MODE_NORMAL": 2003,
     }
 
+    CARD_STATES = {
+        "RIL_CARDSTATE_ABSENT": 0,
+        "RIL_CARDSTATE_PRESENT": 1,
+        "RIL_CARDSTATE_ERROR": 2
+    }
+
+    PIN_STATES = {
+        "RIL_PINSTATE_UNKNOWN": 0,
+        "RIL_PINSTATE_ENABLED_NOT_VERIFIED": 1,
+        "RIL_PINSTATE_ENABLED_VERIFIED": 2,
+        "RIL_PINSTATE_DISABLED": 3,
+        "RIL_PINSTATE_ENABLED_BLOCKED": 4,
+        "RIL_PINSTATE_ENABLED_PERM_BLOCKE": 5
+    }
+
+    APP_TYPES = {
+        "RIL_APPTYPE_UNKNOWN": 0,
+        "RIL_APPTYPE_SIM": 1,
+        "RIL_APPTYPE_USIM": 2,
+        "RIL_APPTYPE_RUIM": 3,
+        "RIL_APPTYPE_CSIM": 4
+        }
+    
+    APP_STATES = {
+        "RIL_APPSTATE_UNKNOWN": 0,
+        "RIL_APPSTATE_DETECTED": 1,
+        "RIL_APPSTATE_PIN": 2,
+        "RIL_APPSTATE_PUK": 3,
+        "RIL_APPSTATE_SUBSCRIPTION_PERSO": 4,
+        "RIL_APPSTATE_READY": 5
+        }
 
     def __init__(self, command = None):
         Parcel.__init__(self)
@@ -359,6 +594,34 @@ class CommandParcel(Parcel):
             self.response_type = None
             self.request_type = None
             self.pid = None
+
+    @staticmethod
+    def getCardStateName(state):
+        names = [name
+                 for name, num in CommandParcel.CARD_STATES.items()
+                 if num == state]
+        return names[0]
+
+    @staticmethod
+    def getPINStateName(state):
+        names = [name
+                 for name, num in CommandParcel.PIN_STATES.items()
+                 if num == state]
+        return names[0]
+
+    @staticmethod
+    def getAppTypeName(atype):
+        names = [name
+                 for name, num in CommandParcel.APP_TYPES.items()
+                 if num == atype]
+        return names[0]
+
+    @staticmethod
+    def getAppStateName(state):
+        names = [name
+                 for name, num in CommandParcel.APP_STATES.items()
+                 if num == state]
+        return names[0]
 
     def prepareParcelForWrite(self):
         b = struct.pack("II", self.request_type, self.pid)
